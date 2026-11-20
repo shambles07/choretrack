@@ -33,7 +33,10 @@ const pinLoginSchema = z.object({
     pin: z.string().min(1).max(10),
 });
 
-const LOGIN_LIMIT = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
+// Slows down PIN and password guessing. LOGIN_RATE_LIMIT exists for automated tests.
+const LOGIN_LIMIT = {
+    config: { rateLimit: { max: Number(process.env.LOGIN_RATE_LIMIT ?? 10), timeWindow: "1 minute" } },
+};
 
 export async function publicRoutes(app: FastifyInstance): Promise<void> {
     const db = app.db;

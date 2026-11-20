@@ -196,6 +196,22 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
         return { instance: toInstance(getInstance(id)) };
     });
 
+    // Puts a reviewed chore back in the approval queue (the parent's "Undo").
+    app.post("/instances/:id/unreview", async (req) => {
+        const { id } = idParam.parse(req.params);
+        const row = getInstance(id);
+        if (row.status !== "approved" && row.status !== "rejected") {
+            throw new HttpError(409, "That chore hasn't been reviewed.");
+        }
+        db.prepare(
+            `UPDATE chore_instances
+             SET status = 'submitted', points_awarded = 0, reviewed_at = NULL, reviewed_by = NULL,
+                 note = NULL, seen = 1, submitted_at = COALESCE(submitted_at, ?)
+             WHERE id = ?`,
+        ).run(nowIso(), id);
+        return { instance: toInstance(getInstance(id)) };
+    });
+
     // Undo an approval or rejection made by mistake.
     app.post("/instances/:id/reset", async (req) => {
         const { id } = idParam.parse(req.params);

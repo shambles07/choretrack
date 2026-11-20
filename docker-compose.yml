@@ -1,0 +1,13 @@
+services:
+    choretrack:
+        build: .
+        restart: unless-stopped
+        ports:
+            - "3000:3000"
+        environment:
+            - TZ=America/New_York # set to your time zone so "today" matches your house
+        volumes:
+            - choretrack-data:/data
+
+volumes:
+    choretrack-data:

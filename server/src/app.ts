@@ -83,7 +83,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
         await app.register(fastifyStatic, { root: webDir, wildcard: false });
         // Single-page app: any non-API path serves index.html.
         app.setNotFoundHandler((req, reply) => {
-            if (req.url.startsWith("/api/") || req.method !== "GET") {
+            const pathname = req.url.split("?")[0];
+            const isPage = (req.method === "GET" || req.method === "HEAD") && !path.extname(pathname);
+            if (pathname.startsWith("/api/") || !isPage) {
                 return reply.code(404).send({ error: "Not found." });
             }
             return reply.type("text/html").sendFile("index.html");
