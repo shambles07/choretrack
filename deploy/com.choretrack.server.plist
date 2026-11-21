@@ -17,7 +17,7 @@
         <key>NODE_ENV</key>
         <string>production</string>
         <key>PORT</key>
-        <string>3000</string>
+        <string>3030</string>
         <key>DATA_DIR</key>
         <string>/Users/YOUR_USER/Library/Application Support/ChoreTrack</string>
     </dict>

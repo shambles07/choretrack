@@ -5,7 +5,7 @@ import { buildApp } from "./app.js";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 
-const port = Number(process.env.PORT ?? 3000);
+const port = Number(process.env.PORT ?? 3030);
 const host = process.env.HOST ?? "0.0.0.0";
 const dataDir = path.resolve(process.env.DATA_DIR ?? path.join(root, "data"));
 

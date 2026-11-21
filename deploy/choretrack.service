@@ -10,7 +10,7 @@ Type=simple
 User=choretrack
 WorkingDirectory=/opt/choretrack
 Environment=NODE_ENV=production
-Environment=PORT=3000
+Environment=PORT=3030
 Environment=DATA_DIR=/var/lib/choretrack
 ExecStart=/usr/bin/node dist/server/index.js
 Restart=on-failure

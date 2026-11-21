@@ -12,7 +12,7 @@ A family chore portal that turns chores into a game. Parents assign chores and a
 
 ## Quick start
 
-You need **Node.js 20 or newer** (22 LTS recommended).
+You need **Node.js 22 or newer**. The automated tests run on Node 22; newer releases such as Node 24 and 26 should work too, since the SQLite driver supports Node 22 and later.
 
 ```bash
 npm install
@@ -20,7 +20,7 @@ npm run build
 npm start
 ```
 
-Open <http://localhost:3000> (or `http://<server-ip>:3000` from another device on your network). The first visit asks you to create the parent account, then to add your child.
+Open <http://localhost:3030> (or `http://<server-ip>:3030` from another device on your network). The first visit asks you to create the parent account, then to add your child.
 
 ### Day-to-day use
 
@@ -37,7 +37,7 @@ The database lives in `DATA_DIR` (default `./data`) as `choretrack.db`. To back 
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `PORT` | `3000` | Port to listen on |
+| `PORT` | `3030` | Port to listen on |
 | `HOST` | `0.0.0.0` | Interface to bind to |
 | `DATA_DIR` | `./data` | Where the SQLite database is stored |
 | `TZ` | system | Time zone that decides when "today" starts |
@@ -46,8 +46,8 @@ The database lives in `DATA_DIR` (default `./data`) as `choretrack.db`. To back 
 ### Raspberry Pi OS / Debian
 
 ```bash
-# Node.js 22 (Debian's own package is too old)
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+# Current LTS Node.js (Debian's own package is too old)
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
 sudo apt-get install -y nodejs git build-essential python3
 
 # App
@@ -69,7 +69,7 @@ sudo systemctl status choretrack
 ### macOS
 
 ```bash
-brew install node@22
+brew install node
 git clone https://github.com/shambles07/choretrack.git ~/choretrack
 cd ~/choretrack
 npm ci
@@ -119,7 +119,7 @@ npm run reset-admin-password -- <username> <new-password>
 ## Development
 
 ```bash
-npm run dev        # API on :3000 and Vite on :5173 with hot reload
+npm run dev        # API on :3030 and Vite on :5173 with hot reload
 npm run typecheck
 npm test           # API tests (Vitest)
 npm run build && npm run test:e2e   # browser tests at phone, tablet and desktop sizes (Playwright)
