@@ -89,7 +89,7 @@ launchctl load ~/Library/LaunchAgents/com.choretrack.server.plist
 docker compose up -d --build
 ```
 
-Edit `TZ` in `docker-compose.yml` first. Data is kept in the `choretrack-data` volume.
+Edit `TZ` in `docker-compose.yml` first, then open <http://localhost:3030>. Data is kept in the `choretrack-data` volume.
 
 ### Updating
 
@@ -100,6 +100,15 @@ npm run build
 ```
 
 Then restart the service, e.g. `sudo systemctl restart choretrack`. Database changes are applied automatically on start.
+
+With Docker, rebuild the image after pulling. A plain `docker compose up -d` keeps running the old image:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+To use a different port, change both numbers in `ports` and the `PORT` line in `docker-compose.yml`, e.g. `"8080:8080"` and `PORT=8080`.
 
 ### Forgot the parent password?
 
