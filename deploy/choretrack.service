@@ -1,0 +1,27 @@
+# systemd unit for Raspberry Pi OS / Debian.
+# Install: see README, "Raspberry Pi OS / Debian".
+[Unit]
+Description=ChoreTrack family chore portal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=choretrack
+WorkingDirectory=/opt/choretrack
+Environment=NODE_ENV=production
+Environment=PORT=3030
+Environment=DATA_DIR=/var/lib/choretrack
+ExecStart=/usr/bin/node dist/server/index.js
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/choretrack
+
+[Install]
+WantedBy=multi-user.target

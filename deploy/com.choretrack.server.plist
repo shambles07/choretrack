@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- launchd agent for macOS. Replace YOUR_USER and paths; see README, "macOS". -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.choretrack.server</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>dist/server/index.js</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/YOUR_USER/choretrack</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>NODE_ENV</key>
+        <string>production</string>
+        <key>PORT</key>
+        <string>3030</string>
+        <key>DATA_DIR</key>
+        <string>/Users/YOUR_USER/Library/Application Support/ChoreTrack</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/YOUR_USER/Library/Logs/choretrack.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/YOUR_USER/Library/Logs/choretrack.log</string>
+</dict>
+</plist>
