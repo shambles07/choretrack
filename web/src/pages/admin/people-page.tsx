@@ -4,11 +4,13 @@ import { Pencil, Plus, Trash2, UserPlus } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useLoad } from "../../lib/use-load";
-import { AVATAR_ICON_KEYS, IconTile } from "../../lib/icons";
+import { IconTile } from "../../lib/icons";
+import { nameError, pinError } from "../../lib/validation";
 import { PageHeader } from "../../components/app-shell";
 import { useToast } from "../../components/toast";
 import { Modal } from "../../components/modal";
-import { ColorPicker, IconPicker } from "../../components/pickers";
+import { ProfileFields } from "../../components/profile-fields";
+import { TextField } from "../../components/text-field";
 import { Switch } from "./chores-page";
 import type { PublicUser, Role } from "../../../../shared/types";
 
@@ -34,7 +36,7 @@ const blank = (role: Role): Draft => ({
 });
 
 export function AdminPeoplePage() {
-    const { user: me } = useAuth();
+    const { user: me, setUser } = useAuth();
     const notify = useToast();
     const [params, setParams] = useSearchParams();
     const { data, reload } = useLoad<{ users: PublicUser[] }>("/admin/users");
@@ -46,8 +48,13 @@ export function AdminPeoplePage() {
     const admins = data.users.filter((u) => u.role === "admin");
     const welcome = params.get("welcome") === "1" && doers.length === 0;
 
+    const draftValid =
+        draft !== null &&
+        nameError(draft.name) === null &&
+        (draft.role === "admin" || pinError(draft.pin, !draft.id) === null);
+
     const save = async () => {
-        if (!draft) return;
+        if (!draft || !draftValid) return;
         const body: Record<string, unknown> = { name: draft.name, avatar: draft.avatar, color: draft.color };
         if (draft.role === "admin") {
             body.username = draft.username;
@@ -56,7 +63,11 @@ export function AdminPeoplePage() {
             body.pin = draft.pin;
         }
         try {
-            if (draft.id) await api.patch(`/admin/users/${draft.id}`, body);
+            if (draft.id) {
+                const res = await api.patch<{ user: PublicUser }>(`/admin/users/${draft.id}`, body);
+                // Editing yourself here should update the sidebar and accent colour right away.
+                if (draft.id === me?.id) setUser(res.user);
+            }
             else await api.post("/admin/users", { ...body, role: draft.role });
             notify(draft.id ? "Saved" : `${draft.name} added`, { tone: "success" });
             setDraft(null);
@@ -119,7 +130,7 @@ export function AdminPeoplePage() {
 
             {welcome && (
                 <div className="card flex flex-wrap items-center gap-4 p-5" style={{ borderColor: "var(--accent)" }}>
-                    <UserPlus className="text-accent" size={32} />
+                    <UserPlus className="text-accent-ink" size={32} />
                     <div className="flex-1">
                         <h2 className="font-bold">You're all set up!</h2>
                         <p className="text-sm text-muted">Next, add your child so you can start assigning chores.</p>
@@ -162,7 +173,7 @@ export function AdminPeoplePage() {
                             <button className="btn btn-ghost" onClick={() => setDraft(null)}>
                                 Cancel
                             </button>
-                            <button className="btn btn-primary" onClick={save} disabled={!draft.name.trim()}>
+                            <button className="btn btn-primary" onClick={save} disabled={!draftValid}>
                                 Save
                             </button>
                         </>
@@ -170,42 +181,29 @@ export function AdminPeoplePage() {
                 >
                     <form
                         className="space-y-5"
+                        noValidate
                         onSubmit={(e) => {
                             e.preventDefault();
                             void save();
                         }}
                     >
-                        <div className="flex items-center gap-4">
-                            <IconTile name={draft.avatar} color={draft.color} size={64} solid rounded="rounded-3xl" />
-                            <div className="flex-1">
-                                <label className="label" htmlFor="person-name">
-                                    Name
-                                </label>
-                                <input
-                                    id="person-name"
-                                    className="input"
-                                    maxLength={60}
-                                    value={draft.name}
-                                    onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                                    required
-                                />
-                            </div>
-                        </div>
+                        <ProfileFields
+                            idPrefix="person"
+                            values={draft}
+                            onChange={(values) => setDraft({ ...draft, ...values })}
+                        />
                         {draft.role === "doer" ? (
-                            <div>
-                                <label className="label" htmlFor="person-pin">
-                                    {draft.id ? "New PIN (leave blank to keep)" : "4-digit PIN"}
-                                </label>
-                                <input
+                            <div className="w-48">
+                                <TextField
                                     id="person-pin"
-                                    className="input w-40 text-center text-xl tracking-[0.5em]"
+                                    label={draft.id ? "New PIN (blank keeps the old one)" : "4-digit PIN"}
+                                    inputClassName="text-center text-xl tracking-[0.5em]"
                                     inputMode="numeric"
-                                    pattern="\d{4}"
                                     maxLength={4}
                                     autoComplete="off"
                                     value={draft.pin}
-                                    onChange={(e) => setDraft({ ...draft, pin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                                    required={!draft.id}
+                                    onChange={(pin) => setDraft({ ...draft, pin: pin.replace(/\D/g, "").slice(0, 4) })}
+                                    error={pinError(draft.pin, !draft.id)}
                                 />
                             </div>
                         ) : (
@@ -240,14 +238,6 @@ export function AdminPeoplePage() {
                                 </div>
                             </div>
                         )}
-                        <IconPicker
-                            label="Avatar"
-                            icons={AVATAR_ICON_KEYS}
-                            value={draft.avatar}
-                            color={draft.color}
-                            onChange={(avatar) => setDraft({ ...draft, avatar })}
-                        />
-                        <ColorPicker value={draft.color} onChange={(color) => setDraft({ ...draft, color })} label="Favourite colour" />
                         <button type="submit" className="hidden" />
                     </form>
                 </Modal>

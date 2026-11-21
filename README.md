@@ -29,6 +29,8 @@ Open <http://localhost:3030> (or `http://<server-ip>:3030` from another device o
 | Parent | **Chores**: add chores (one-off, every day, or certain weekdays), set points, category and optional "done by" time. **Overview**: approve or send back finished chores and approve reward requests. **History**: see what got done and fix mistakes. **Rewards**: set what points can buy. |
 | Kid | **My chores**: today's list, things still to finish, and what's coming up. Tap **I did it!** **Rewards**: spend approved points. **Trophies**: levels, streaks and badges. |
 
+**Keyboard shortcuts:** press a number to jump to the matching page in the sidebar. For parents that's 1 Overview, 2 Chores, 3 History, 4 Rewards, 5 People, 6 Categories and 7 My account. Hold Ctrl or Option/Alt to see the numbers. Click your avatar or name (top right on phones) to change your name, avatar and favourite colour. Your favourite colour is also used for buttons and highlights throughout the app.
+
 A **streak** counts days where every chore was approved. Days waiting on a parent's approval don't break it.
 
 ## Running it on a home server

@@ -77,6 +77,16 @@ describe("setup and auth", () => {
         expect((await call("GET", "/api/admin/overview")).status).toBe(401);
     });
 
+    it("lets people edit their own profile but not blank their name", async () => {
+        const { kidCookie } = await setupFamily();
+        const res = await call("PATCH", "/api/me", kidCookie, { name: "Ava Rose", avatar: "rocket", color: "#22c55e" });
+        expect(res.status).toBe(200);
+        expect(res.body.user).toMatchObject({ name: "Ava Rose", avatar: "rocket", color: "#22c55e", role: "doer" });
+        expect((await call("PATCH", "/api/me", kidCookie, { name: "   " })).status).toBe(400);
+        expect((await call("PATCH", "/api/me", kidCookie, { color: "red" })).status).toBe(400);
+        expect((await call("PATCH", "/api/me", undefined, { name: "X" })).status).toBe(401);
+    });
+
     it("requires JSON for mutating requests", async () => {
         const res = await app.inject({
             method: "POST",

@@ -51,7 +51,7 @@ export function DoerTrophiesPage() {
                                 <div className="font-bold">{b.name}</div>
                                 <div className="text-xs text-muted">{b.description}</div>
                                 {got && (
-                                    <div className="text-[11px] font-semibold text-accent">
+                                    <div className="text-[11px] font-semibold text-accent-ink">
                                         {new Date(got.earnedAt.replace(" ", "T") + "Z").toLocaleDateString()}
                                     </div>
                                 )}

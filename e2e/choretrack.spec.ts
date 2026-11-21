@@ -99,3 +99,84 @@ test("parent creates a chore from the form", async ({ page, request }, info) => 
     await expect(page.getByText("Chore added")).toBeVisible();
     await expect(page.getByText(`Water plants (${info.project.name})`)).toBeVisible();
 });
+
+test("typing a PIN keeps focus and the fields show red/green validation", async ({ page, request }) => {
+    await ensureFamily(request);
+    await loginParent(page);
+    await page.goto("/admin/people");
+    await page.getByRole("button", { name: "Add" }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Add chore doer" });
+    const name = dialog.getByLabel("Name", { exact: true });
+    const pin = dialog.getByLabel("4-digit PIN");
+
+    // A blank name that has focus is flagged straight away, with a tooltip.
+    await expect(name).toBeFocused();
+    await expect(name).toHaveAttribute("data-state", "invalid");
+    await expect(dialog.getByRole("tooltip")).toHaveText("Name cannot be blank!");
+
+    await name.pressSequentially("Sam");
+    await expect(name).toHaveAttribute("data-state", "valid");
+    await expect(dialog.getByRole("tooltip")).toHaveCount(0);
+
+    // Regression: each keystroke used to send focus back to the Name field.
+    await pin.click();
+    await pin.pressSequentially("1");
+    await expect(pin).toBeFocused();
+    await expect(pin).toHaveValue("1");
+    await expect(name).toHaveValue("Sam");
+    await expect(pin).toHaveAttribute("data-state", "invalid");
+    await expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();
+
+    await pin.pressSequentially("234");
+    await expect(pin).toHaveValue("1234");
+    await expect(pin).toHaveAttribute("data-state", "valid");
+    await expect(dialog.getByRole("button", { name: "Save" })).toBeEnabled();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+});
+
+test("number keys switch pages and Ctrl shows the numbers", async ({ page, request }) => {
+    await ensureFamily(request);
+    await loginParent(page);
+    await expect(page.locator("kbd.kbd-hint")).toHaveCount(0);
+    await page.keyboard.down("Control");
+    await expect(page.locator("kbd.kbd-hint").filter({ visible: true }).first()).toBeVisible();
+    await page.keyboard.up("Control");
+    await expect(page.locator("kbd.kbd-hint")).toHaveCount(0);
+
+    await page.keyboard.press("2");
+    await expect(page).toHaveURL(/\/admin\/chores$/);
+    await page.keyboard.press("4");
+    await expect(page).toHaveURL(/\/admin\/rewards$/);
+    await page.keyboard.press("Alt+3");
+    await expect(page).toHaveURL(/\/admin\/history$/);
+    await page.keyboard.press("7");
+    await expect(page).toHaveURL(/\/admin\/account$/);
+    await page.keyboard.press("1");
+    await expect(page).toHaveURL(/\/admin$/);
+
+    // Typing a number into a field must not navigate away.
+    await page.goto("/admin/chores");
+    await page.getByLabel("Search chores").fill("5");
+    await expect(page).toHaveURL(/\/admin\/chores$/);
+});
+
+test("clicking your avatar edits your profile and sets the accent colour", async ({ page, request }) => {
+    await ensureFamily(request);
+    await loginParent(page);
+    await page.getByTitle("Edit my profile").filter({ visible: true }).click();
+    const dialog = page.getByRole("dialog", { name: "My profile" });
+    const name = dialog.getByLabel("Name", { exact: true });
+    await expect(name).toHaveValue(ADMIN.name);
+
+    await name.fill("");
+    await expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();
+    await name.fill(ADMIN.name);
+    await dialog.getByRole("button", { name: "Colour #22c55e" }).click();
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Profile updated")).toBeVisible();
+    const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
+    expect(accent).toBe("#22c55e");
+
+    // Put the default colour back for the other tests.
+    await request.patch("/api/me", { data: { color: "#6366f1" } });
+});

@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
     ClipboardList,
@@ -22,6 +22,9 @@ import { useTheme, type ThemePref } from "../lib/theme";
 import { api } from "../lib/api";
 import { setSoundEnabled } from "../lib/sound";
 import { IconTile } from "../lib/icons";
+import { applyAccent } from "../lib/accent";
+import { useNavShortcuts } from "../lib/use-nav-shortcuts";
+import { ProfileDialog } from "./profile-dialog";
 import type { PublicUser } from "../../../shared/types";
 
 interface NavItem {
@@ -84,20 +87,27 @@ function SoundToggle({ user }: { user: PublicUser }) {
     );
 }
 
+function KeyHint({ n, className }: { n: number; className: string }) {
+    return (
+        <kbd className={`kbd-hint ${className}`} aria-hidden="true">
+            {n}
+        </kbd>
+    );
+}
+
 export function AppShell() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const nav = user?.role === "admin" ? ADMIN_NAV : DOER_NAV;
+    const paths = useMemo(() => nav.map((n) => n.to), [nav]);
+    const showHints = useNavShortcuts(paths);
+    const [editingProfile, setEditingProfile] = useState(false);
 
-    // Each chore doer gets their own accent colour throughout the app.
+    // Everyone's favourite colour becomes the accent colour for buttons and highlights.
     useEffect(() => {
-        const root = document.documentElement;
-        if (user?.role === "doer") root.style.setProperty("--accent", user.color);
-        else root.style.removeProperty("--accent");
-        return () => {
-            root.style.removeProperty("--accent");
-        };
-    }, [user]);
+        applyAccent(user?.color ?? null);
+        return () => applyAccent(null);
+    }, [user?.color]);
 
     if (!user) return null;
 
@@ -105,6 +115,8 @@ export function AppShell() {
         await logout();
         navigate("/login");
     };
+
+    const shortcutFor = (to: string) => paths.indexOf(to) + 1;
 
     return (
         <div className="min-h-dvh lg:flex">
@@ -120,23 +132,38 @@ export function AppShell() {
                             key={item.to}
                             to={item.to}
                             end={item.end}
+                            aria-keyshortcuts={String(shortcutFor(item.to))}
                             className={({ isActive }) =>
-                                `flex min-h-11 items-center gap-3 rounded-xl px-3 font-semibold transition-colors ${
-                                    isActive ? "bg-accent/12 text-accent" : "text-muted hover:bg-surface-2 hover:text-fg"
+                                `relative flex min-h-11 items-center gap-3 rounded-xl px-3 font-semibold transition-colors ${
+                                    isActive ? "bg-accent/12 text-accent-ink" : "text-muted hover:bg-surface-2 hover:text-fg"
                                 }`
                             }
                         >
+                            {showHints && <KeyHint n={shortcutFor(item.to)} className="-top-1.5 left-0.5" />}
                             {item.icon}
                             {item.label}
                         </NavLink>
                     ))}
+                    <p className="mt-3 px-3 text-xs text-muted">
+                        Press 1–{nav.length} to jump. Hold Ctrl or ⌥ to see the numbers.
+                    </p>
                 </nav>
-                <div className="flex items-center gap-3 rounded-2xl bg-surface-2 p-3">
-                    <IconTile name={user.avatar} color={user.color} size={36} rounded="rounded-xl" solid />
-                    <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-bold">{user.name}</div>
-                        <div className="text-xs text-muted">{user.role === "admin" ? "Parent" : "Chore doer"}</div>
-                    </div>
+                <div className="flex items-center gap-1 rounded-2xl bg-surface-2 p-1.5">
+                    <button
+                        className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1.5 text-left transition-colors hover:bg-surface"
+                        onClick={() => setEditingProfile(true)}
+                        title="Edit my profile"
+                        aria-label={`Edit my profile (${user.name})`}
+                    >
+                        <IconTile name={user.avatar} color={user.color} size={36} rounded="rounded-xl" solid />
+                        <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-bold">{user.name}</span>
+                            <span className="block text-xs text-muted">
+                                <span className="group-hover:hidden">{user.role === "admin" ? "Parent" : "Chore doer"}</span>
+                                <span className="hidden group-hover:inline">Edit profile</span>
+                            </span>
+                        </span>
+                    </button>
                     <button className="btn btn-ghost btn-icon" onClick={signOut} aria-label="Log out" title="Log out">
                         <LogOut size={18} />
                     </button>
@@ -153,6 +180,14 @@ export function AppShell() {
                         <div className="flex-1" />
                         {user.role === "doer" && <SoundToggle user={user} />}
                         <ThemeToggle />
+                        <button
+                            className="btn btn-ghost btn-icon lg:hidden"
+                            onClick={() => setEditingProfile(true)}
+                            aria-label={`Edit my profile (${user.name})`}
+                            title="Edit my profile"
+                        >
+                            <IconTile name={user.avatar} color={user.color} size={32} rounded="rounded-lg" solid />
+                        </button>
                         <button className="btn btn-ghost btn-icon lg:hidden" onClick={signOut} aria-label="Log out">
                             <LogOut size={20} />
                         </button>
@@ -177,12 +212,14 @@ export function AppShell() {
                                 key={item.to}
                                 to={item.to}
                                 end={item.end}
+                                aria-keyshortcuts={String(shortcutFor(item.to))}
                                 className={({ isActive }) =>
-                                    `flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-semibold ${
-                                        isActive ? "text-accent" : "text-muted"
+                                    `relative flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-semibold ${
+                                        isActive ? "text-accent-ink" : "text-muted"
                                     }`
                                 }
                             >
+                                {showHints && <KeyHint n={shortcutFor(item.to)} className="left-1/2 top-0.5 ml-3" />}
                                 {item.icon}
                                 {item.label}
                             </NavLink>
@@ -192,7 +229,7 @@ export function AppShell() {
                             to="/admin/more"
                             className={({ isActive }) =>
                                 `flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-semibold ${
-                                    isActive ? "text-accent" : "text-muted"
+                                    isActive ? "text-accent-ink" : "text-muted"
                                 }`
                             }
                         >
@@ -202,6 +239,8 @@ export function AppShell() {
                     )}
                 </div>
             </nav>
+
+            <ProfileDialog open={editingProfile} onClose={() => setEditingProfile(false)} />
         </div>
     );
 }

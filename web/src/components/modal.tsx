@@ -18,11 +18,17 @@ export function Modal({
 }) {
     const titleId = useId();
     const panel = useRef<HTMLDivElement>(null);
+    // Callers usually pass a new onClose on every render. Reading it through a ref keeps the
+    // effect below from re-running (and re-focusing the first field) on every keystroke.
+    const onCloseRef = useRef(onClose);
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    });
 
     useEffect(() => {
         if (!open) return;
         const previous = document.activeElement as HTMLElement | null;
-        const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+        const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
         document.addEventListener("keydown", onKey);
         document.body.style.overflow = "hidden";
         window.setTimeout(() => {
@@ -34,7 +40,7 @@ export function Modal({
             document.body.style.overflow = "";
             previous?.focus();
         };
-    }, [open, onClose]);
+    }, [open]);
 
     return (
         <AnimatePresence>

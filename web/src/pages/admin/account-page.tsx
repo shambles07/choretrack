@@ -81,7 +81,7 @@ export function AdminMorePage() {
             <div className="card divide-y divide-line">
                 {links.map((l) => (
                     <Link key={l.to} to={l.to} className="flex min-h-16 items-center gap-3 px-4 hover:bg-surface-2">
-                        <span className="text-accent">{l.icon}</span>
+                        <span className="text-accent-ink">{l.icon}</span>
                         <span className="flex-1">
                             <span className="block font-semibold">{l.label}</span>
                             <span className="block text-xs text-muted">{l.hint}</span>

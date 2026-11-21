@@ -117,9 +117,31 @@ export async function publicRoutes(app: FastifyInstance): Promise<void> {
 
     app.get("/auth/me", async (req) => ({ user: req.user }));
 
+    // Lets anyone signed in change their own sound setting, name, avatar and colour.
     app.patch("/me", { preHandler: requireUser }, async (req) => {
-        const body = z.object({ soundEnabled: z.boolean() }).parse(req.body);
-        db.prepare("UPDATE users SET sound_enabled = ? WHERE id = ?").run(body.soundEnabled ? 1 : 0, req.user!.id);
+        const body = z
+            .object({
+                soundEnabled: z.boolean().optional(),
+                name: z.string().trim().min(1, "cannot be blank").max(60).optional(),
+                avatar: iconSchema.optional(),
+                color: colorSchema.optional(),
+            })
+            .parse(req.body);
+        const sets: string[] = [];
+        const values: unknown[] = [];
+        if (body.soundEnabled !== undefined) {
+            sets.push("sound_enabled = ?");
+            values.push(body.soundEnabled ? 1 : 0);
+        }
+        for (const key of ["name", "avatar", "color"] as const) {
+            if (body[key] !== undefined) {
+                sets.push(`${key} = ?`);
+                values.push(body[key]);
+            }
+        }
+        if (sets.length > 0) {
+            db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(...values, req.user!.id);
+        }
         return { user: toPublicUser(db.prepare("SELECT * FROM users WHERE id = ?").get(req.user!.id) as never) };
     });
 

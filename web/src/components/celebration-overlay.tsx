@@ -68,7 +68,7 @@ export function CelebrationOverlay({
 
                     {celebration.levelUp && (
                         <div className="mb-2">
-                            <div className="text-sm font-bold uppercase tracking-widest text-accent">Level up!</div>
+                            <div className="text-sm font-bold uppercase tracking-widest text-accent-ink">Level up!</div>
                             <div className="text-2xl font-extrabold">
                                 Level {celebration.levelUp.level}: {celebration.levelUp.name}
                             </div>

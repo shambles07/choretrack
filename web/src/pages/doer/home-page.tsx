@@ -125,7 +125,7 @@ export function DoerHomePage() {
                             <motion.div
                                 initial={{ opacity: 0, y: -8 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="mb-4 flex items-center gap-3 rounded-2xl bg-accent/10 px-4 py-3 font-semibold text-accent"
+                                className="mb-4 flex items-center gap-3 rounded-2xl bg-accent/10 px-4 py-3 font-semibold text-accent-ink"
                             >
                                 <PartyPopper size={22} />
                                 All done for today! You're amazing.
@@ -143,7 +143,7 @@ export function DoerHomePage() {
                             <CalendarDays size={20} className="text-muted" />
                             Coming up
                         </h2>
-                        <button className="btn btn-ghost min-h-10 text-sm text-accent" onClick={() => setShowWeek((v) => !v)}>
+                        <button className="btn btn-ghost min-h-10 text-sm text-accent-ink" onClick={() => setShowWeek((v) => !v)}>
                             {showWeek ? "Show less" : "Whole week"}
                         </button>
                     </div>

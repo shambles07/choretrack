@@ -59,7 +59,7 @@ export function XpBar({ level }: { level: LevelInfo }) {
         <div>
             <div className="mb-1.5 flex items-baseline justify-between gap-2 text-sm">
                 <span className="font-bold">
-                    Level {level.level} · <span className="text-accent">{level.name}</span>
+                    Level {level.level} · <span className="text-accent-ink">{level.name}</span>
                 </span>
                 {level.nextLevelXp !== null && (
                     <span className="text-xs font-semibold text-muted tabular-nums">
