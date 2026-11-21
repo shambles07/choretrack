@@ -8,6 +8,7 @@ const shared = {
     target: "node20",
     packages: "external",
     sourcemap: true,
+    banner: { js: "#!/usr/bin/env node" },
     logLevel: "info",
 };
 
@@ -19,3 +20,7 @@ await build({
     },
     outdir: "dist/server",
 });
+
+// Lets the bundle run directly as ./dist/server/index.js (and as the `choretrack` bin).
+const { chmodSync } = await import("node:fs");
+chmodSync("dist/server/index.js", 0o755);

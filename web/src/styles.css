@@ -65,6 +65,10 @@ body {
     min-height: 100dvh;
 }
 
+kbd {
+    font-family: inherit;
+}
+
 /* In the base layer so component styles (inputs, validation states) can override it.
    Unlayered, it beat every component rule and drew an accent ring around red/green inputs. */
 @layer base {

@@ -1,0 +1,37 @@
+# Publishes a GitHub release when a version tag (e.g. v1.2.0) is pushed.
+# The release notes come from the matching changie file in .changes/.
+# Create tags with `make tag` after the release commit is on main.
+name: Release
+
+on:
+    push:
+        tags: ["v*"]
+
+permissions:
+    contents: write
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Check the tag matches a changelog entry
+              run: test -f ".changes/${GITHUB_REF_NAME}.md" || { echo "No .changes/${GITHUB_REF_NAME}.md"; exit 1; }
+
+            - name: Test
+              run: |
+                  npm ci
+                  npm run typecheck
+                  npm test
+
+            - name: Publish release
+              uses: softprops/action-gh-release@v2
+              with:
+                  name: ChoreTrack ${{ github.ref_name }}
+                  body_path: .changes/${{ github.ref_name }}.md

@@ -1,0 +1,52 @@
+# Changelog management. See docs/releasing.md.
+#   npx changie new           record a change (or: make change)
+#   npx changie batch auto    collect unreleased changes into the next version
+#   npx changie merge         rebuild CHANGELOG.md
+changesDir: .changes
+unreleasedDir: unreleased
+headerPath: header.tpl.md
+changelogPath: CHANGELOG.md
+versionExt: md
+versionFormat: '## 🏷️ [{{.Version}}](https://github.com/shambles07/choretrack/releases/tag/{{.Version}}) · <sub>{{.Time.Format "January 2, 2006"}}</sub>'
+kindFormat: '### {{.Kind}}'
+changeFormat: '- {{.Body}}'
+kinds:
+    - key: added
+      label: Added
+      format: '### ✨ Added'
+      auto: minor
+    - key: changed
+      label: Changed
+      format: '### 🎨 Changed'
+      auto: minor
+    - key: fixed
+      label: Fixed
+      format: '### 🐛 Fixed'
+      auto: patch
+    - key: security
+      label: Security
+      format: '### 🔒 Security'
+      auto: patch
+    - key: deprecated
+      label: Deprecated
+      format: '### ⏳ Deprecated'
+      auto: minor
+    - key: removed
+      label: Removed
+      format: '### 🧹 Removed'
+      auto: major
+    - key: breaking
+      label: Breaking
+      format: '### 💥 Breaking'
+      auto: major
+newlines:
+    afterChangelogHeader: 1
+    beforeKind: 1
+    afterKind: 1
+    endOfVersion: 1
+envPrefix: CHANGIE_
+replacements:
+    # Keep package.json in step with the released version.
+    - path: package.json
+      find: '"version": ".*",'
+      replace: '"version": "{{.VersionNoPrefix}}",'
