@@ -23,6 +23,7 @@ import { api } from "../lib/api";
 import { setSoundEnabled } from "../lib/sound";
 import { IconTile } from "../lib/icons";
 import { applyAccent } from "../lib/accent";
+import { modifierLabels } from "../lib/platform";
 import { useNavShortcuts } from "../lib/use-nav-shortcuts";
 import { ProfileDialog } from "./profile-dialog";
 import type { PublicUser } from "../../../shared/types";
@@ -102,6 +103,7 @@ export function AppShell() {
     const paths = useMemo(() => nav.map((n) => n.to), [nav]);
     const showHints = useNavShortcuts(paths);
     const [editingProfile, setEditingProfile] = useState(false);
+    const keys = useMemo(() => modifierLabels(), []);
 
     // Everyone's favourite colour becomes the accent colour for buttons and highlights.
     useEffect(() => {
@@ -145,7 +147,16 @@ export function AppShell() {
                         </NavLink>
                     ))}
                     <p className="mt-3 px-3 text-xs text-muted">
-                        Press 1–{nav.length} to jump. Hold Ctrl or ⌥ to see the numbers.
+                        Press <kbd className="font-semibold">1</kbd>–<kbd className="font-semibold">{nav.length}</kbd> to
+                        jump. Hold{" "}
+                        <kbd className="font-semibold" title={keys.ctrlName}>
+                            {keys.ctrl}
+                        </kbd>{" "}
+                        or{" "}
+                        <kbd className="font-semibold" title={keys.altName}>
+                            {keys.alt}
+                        </kbd>{" "}
+                        to see the numbers.
                     </p>
                 </nav>
                 <div className="flex items-center gap-1 rounded-2xl bg-surface-2 p-1.5">
