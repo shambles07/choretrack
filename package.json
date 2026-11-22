@@ -1,6 +1,6 @@
 {
     "name": "choretrack",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "private": true,
     "description": "A stupid simple, all-in-one family chore tracker. Built by engineers, for engineers.",
     "type": "module",
