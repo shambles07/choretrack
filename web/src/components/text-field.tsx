@@ -1,4 +1,4 @@
-import { useId, useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { useId, useState, type InputHTMLAttributes } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 type FieldState = "neutral" | "valid" | "invalid";
@@ -23,13 +23,12 @@ type SharedProps = {
     hideLabel?: boolean;
 };
 
-type InputProps = SharedProps & { multiline?: false } & Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "value" | "onChange">;
-type TextareaProps = SharedProps & { multiline: true } & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "id" | "value" | "onChange">;
+type Props = SharedProps & Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "value" | "onChange">;
 
 // A labelled field that shows whether its value is acceptable.
 // Valid and invalid states each get an icon as well as a coloured outline, so they can't be
 // confused with the user's accent colour (which may itself be green or red).
-export function TextField(props: InputProps | TextareaProps) {
+export function TextField(props: Props) {
     const {
         id,
         label,
@@ -41,7 +40,6 @@ export function TextField(props: InputProps | TextareaProps) {
         showErrors = false,
         optional = false,
         hideLabel = false,
-        multiline,
         ...rest
     } = props;
     const tooltipId = useId();
@@ -76,22 +74,10 @@ export function TextField(props: InputProps | TextareaProps) {
                 {optional && <span className="font-normal"> (optional)</span>}
             </label>
             <div className="relative w-full">
-                {multiline ? (
-                    <textarea
-                        {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
-                        {...shared}
-                        onChange={(e) => onChange(e.target.value)}
-                    />
-                ) : (
-                    <input
-                        {...(rest as InputHTMLAttributes<HTMLInputElement>)}
-                        {...shared}
-                        onChange={(e) => onChange(e.target.value)}
-                    />
-                )}
+                <input {...rest} {...shared} onChange={(e) => onChange(e.target.value)} />
                 {state !== "neutral" && (
                     <span
-                        className={`pointer-events-none absolute right-3 ${multiline ? "top-3" : "top-1/2 -translate-y-1/2"} ${
+                        className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 ${
                             state === "valid" ? "text-success" : "text-danger"
                         }`}
                         aria-hidden="true"

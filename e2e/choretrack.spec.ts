@@ -287,6 +287,7 @@ test("the chore form wraps Tab, validates and submits on Enter", async ({ page, 
     for (const day of ["Mon", "Tue", "Wed", "Thu", "Fri"]) await dialog.getByRole("button", { name: day }).click();
     await title.press("Enter");
     await expect(dialog.getByRole("alert")).toHaveText("Pick at least one day");
+    await expect(dialog.getByRole("button", { name: "Sun" })).toBeFocused();
     await expect(dialog.getByRole("button", { name: /Add chore/ })).toHaveAttribute("aria-disabled", "true");
     await dialog.getByRole("button", { name: "Sat" }).click();
     await expect(dialog.getByRole("alert")).toHaveCount(0);

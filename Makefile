@@ -122,15 +122,15 @@ clean: ## Remove build output and test artefacts
 ##@ Release (see docs/releasing.md)
 
 .PHONY: change
-change: ## Record a change for the next release (interactive)
+change: require-changie ## Record a change for the next release (interactive)
 	$(CHANGIE) new
 
 .PHONY: changelog-preview
-changelog-preview: ## Preview the next release notes (VERSION=auto)
+changelog-preview: require-changie ## Preview the next release notes (VERSION=auto)
 	@$(CHANGIE) batch $(VERSION) --dry-run
 
 .PHONY: release
-release: ## Batch changes into VERSION=auto|major|minor|patch|vX.Y.Z and commit
+release: require-changie ## Batch changes into VERSION=auto|major|minor|patch|vX.Y.Z and commit
 	@test -z "$$(git status --porcelain)" || { echo "Commit or stash your changes first."; exit 1; }
 	@ls .changes/unreleased/*.yaml >/dev/null 2>&1 || { echo "No unreleased changes. Add some with: make change"; exit 1; }
 	$(CHANGIE) batch $(VERSION)
@@ -142,16 +142,29 @@ release: ## Batch changes into VERSION=auto|major|minor|patch|vX.Y.Z and commit
 		$(call say,"Committed release $$v. Merge it into main, then run: make tag")
 
 .PHONY: tag
-tag: ## Tag the latest release on main and push it (publishes the GitHub release)
+tag: require-changie ## Tag the latest release on main and push it (publishes the GitHub release)
 	@test "$$(git rev-parse --abbrev-ref HEAD)" = main || { echo "Switch to main first: git switch main && git pull"; exit 1; }
 	@test -z "$$(git status --porcelain)" || { echo "Working tree isn't clean."; exit 1; }
 	@v="$$($(CHANGIE) latest)"; \
-		if git rev-parse -q --verify "refs/tags/$$v" >/dev/null; then echo "$$v is already tagged."; exit 1; fi; \
-		git tag -a "$$v" -F ".changes/$$v.md" --cleanup=verbatim; \
+		if git ls-remote --exit-code --tags origin "refs/tags/$$v" >/dev/null 2>&1; then \
+			echo "$$v is already on GitHub. Record changes with 'make change' and cut the next one with 'make release'."; exit 1; \
+		fi; \
+		if git rev-parse -q --verify "refs/tags/$$v" >/dev/null; then \
+			$(call say,"$$v exists locally but was never pushed; pushing it now"); \
+		else \
+			git tag -a "$$v" -F ".changes/$$v.md" --cleanup=verbatim; \
+		fi; \
 		git push origin "$$v"; \
-		printf "$(C_GREEN)✔$(C_RESET) Tagged and pushed %s\n" "$$v"
+		git ls-remote --exit-code --tags origin "refs/tags/$$v" >/dev/null 2>&1 \
+			|| { echo "The push didn't reach GitHub. Check your connection and run 'make tag' again."; exit 1; }; \
+		printf "$(C_GREEN)✔$(C_RESET) Tagged and pushed %s. The release workflow will publish it.\n" "$$v"
 
 # ---- Internal ----
+
+# The release targets need changie, which arrives with the dev dependencies.
+.PHONY: require-changie
+require-changie:
+	@$(CHANGIE) --version >/dev/null 2>&1 || { echo "changie isn't installed yet. Run 'npm ci' (or 'make install') first."; exit 1; }
 
 .PHONY: pull
 pull:

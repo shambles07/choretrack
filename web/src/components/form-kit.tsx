@@ -4,7 +4,7 @@ import { modifierLabels } from "../lib/platform";
 // One set of keyboard and validation rules for every form in the app:
 //   • Tab / Shift+Tab cycle through the form's controls and wrap around at the ends.
 //     Elements marked data-skip-tab (Back links, the submit button) are left out: Enter submits.
-//   • Enter submits from any single-line field. In a multi-line field, ⌘/Ctrl+Enter does.
+//   • Enter submits from any field. (Forms use single-line fields only, so Enter never means "new line".)
 //   • Submitting before the form is valid shows every error and moves to the first one.
 //   • Esc runs onEscape (go back, close, or just leave the field).
 
@@ -56,9 +56,6 @@ export function useFormFlow({
                 e.preventDefault();
                 items[e.shiftKey ? items.length - 1 : 0].focus();
             }
-        } else if (e.key === "Enter" && target.tagName === "TEXTAREA" && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            e.currentTarget.requestSubmit();
         } else if (e.key === "Escape" && onEscape) {
             e.preventDefault();
             onEscape();

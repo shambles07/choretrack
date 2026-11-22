@@ -499,11 +499,13 @@ function ChoreForm({
                     </div>
                     {draft.recurrence === "weekly" && (
                         <>
-                            <div className="mt-3 flex flex-wrap gap-1.5" data-error={errors.days ? "true" : undefined}>
+                            <div className="mt-3 flex flex-wrap gap-1.5">
                                 {DAY_NAMES.map((name, d) => (
                                     <button
                                         type="button"
                                         key={name}
+                                        // An early submit focuses the first [data-error]; it has to be focusable.
+                                        data-error={errors.days && d === 0 ? "true" : undefined}
                                         onClick={() => toggleDay(d)}
                                         aria-pressed={draft.daysOfWeek.includes(d)}
                                         className={`h-10 w-12 rounded-xl text-sm font-bold ${
