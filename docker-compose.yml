@@ -6,7 +6,7 @@ services:
             - "3030:3030" # host:container. Keep the container side equal to PORT below.
         environment:
             - PORT=3030
-            - TZ=America/New_York # set to your time zone so "today" matches your house
+            - TZ=America/Chicago # set to your time zone so "today" matches your house
         volumes:
             - choretrack-data:/data
 
