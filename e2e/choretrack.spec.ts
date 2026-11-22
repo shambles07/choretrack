@@ -185,17 +185,65 @@ test("the parent login form works from the keyboard alone", async ({ page, reque
     await ensureFamily(request);
     await page.goto("/login");
     await page.getByRole("button", { name: "Parent login" }).click();
+    const username = page.getByLabel("Username");
+    const password = page.getByLabel("Password");
+    const logIn = page.getByRole("button", { name: /Log in/ });
 
-    // The cursor starts in Username, Tab moves to Password, and Enter submits.
-    await expect(page.getByLabel("Username")).toBeFocused();
+    // The cursor starts in Username, and nothing is red before anything is typed.
+    await expect(username).toBeFocused();
+    await expect(username).toHaveAttribute("data-state", "neutral");
+    await expect(logIn).toHaveAttribute("aria-disabled", "true");
+    await expect(logIn).toHaveClass(/btn-default-action/);
+
     await page.keyboard.type(ADMIN.username);
+    await expect(username).toHaveAttribute("data-state", "valid");
     await page.keyboard.press("Tab");
-    await expect(page.getByLabel("Password")).toBeFocused();
-    await page.keyboard.type(ADMIN.password);
-    await expect(page.getByLabel("Username")).toHaveValue(ADMIN.username);
+    await expect(password).toBeFocused();
+
+    // Tab wraps around between the two fields, in both directions.
+    await page.keyboard.press("Tab");
+    await expect(username).toBeFocused();
     await page.keyboard.press("Shift+Tab");
-    await expect(page.getByLabel("Username")).toBeFocused();
-    await page.keyboard.press("Tab");
+    await expect(password).toBeFocused();
+
+    // Password has been visited and left once already (above), so a short one is flagged at once,
+    // and Enter refuses to submit it.
+    await page.keyboard.type("short");
+    await expect(password).toHaveAttribute("data-state", "invalid");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("tooltip")).toHaveText("Passwords are at least 8 characters");
+    await expect(page).toHaveURL(/\/login/);
+
+    await password.fill(ADMIN.password);
+    await expect(password).toHaveAttribute("data-state", "valid");
+    await expect(logIn).toHaveAttribute("aria-disabled", "false");
+    await expect(logIn).toHaveClass(/is-ready/);
+    await expect(page.getByText("All set. Press")).toBeVisible();
+
     await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+});
+
+test("the login form stays quiet until you leave a field or try to submit", async ({ page, request }) => {
+    await ensureFamily(request);
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Parent login" }).click();
+    await page.getByLabel("Username").fill(ADMIN.username);
+    await page.getByLabel("Password").pressSequentially("short");
+    await expect(page.getByLabel("Password")).toHaveAttribute("data-state", "neutral");
+    // The button is aria-disabled (dimmed) but still clickable: a click shows what's missing.
+    // Playwright won't click aria-disabled elements by default, hence force.
+    await page.getByRole("button", { name: /Log in/ }).click({ force: true });
+    await expect(page.getByLabel("Password")).toHaveAttribute("data-state", "invalid");
+    await expect(page.getByLabel("Password")).toBeFocused();
+    await expect(page).toHaveURL(/\/login/);
+});
+
+test("Esc on the parent login goes back to the avatar picker", async ({ page, request }) => {
+    await ensureFamily(request);
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Parent login" }).click();
+    await expect(page.getByLabel("Username")).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("heading", { name: "Who's doing chores?" })).toBeVisible();
 });

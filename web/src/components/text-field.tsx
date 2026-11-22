@@ -13,6 +13,8 @@ export function TextField({
     onChange,
     error,
     inputClassName = "",
+    quiet = false,
+    showErrors = false,
     ...rest
 }: {
     id: string;
@@ -22,13 +24,20 @@ export function TextField({
     // Message to show when the value isn't acceptable; null when it's fine.
     error: string | null;
     inputClassName?: string;
+    // Quiet mode, for forms like login: valid input turns green straight away, but errors
+    // only show once the field has been left or `showErrors` is set (e.g. after a submit attempt).
+    quiet?: boolean;
+    showErrors?: boolean;
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "value" | "onChange">) {
     const tooltipId = useId();
     const [focused, setFocused] = useState(false);
     const [touched, setTouched] = useState(false);
 
     const engaged = focused || touched;
-    const state: FieldState = !engaged ? "neutral" : error ? "invalid" : value !== "" ? "valid" : "neutral";
+    let state: FieldState = !engaged ? "neutral" : error ? "invalid" : value !== "" ? "valid" : "neutral";
+    if (quiet) {
+        state = error ? (touched || showErrors ? "invalid" : "neutral") : value !== "" ? "valid" : "neutral";
+    }
     const showTooltip = focused && state === "invalid";
 
     return (

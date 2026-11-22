@@ -31,11 +31,13 @@ export interface ModifierLabels {
     // Spoken/readable names for screen readers and tooltips.
     ctrlName: string;
     altName: string;
+    // What the Enter key is called on this platform's keyboards.
+    enter: string;
 }
 
 export function modifierLabels(platform: Platform = detectPlatform()): ModifierLabels {
     if (platform === "macos" || platform === "ios") {
-        return { ctrl: "⌃", alt: "⌥", ctrlName: "Control", altName: "Option" };
+        return { ctrl: "⌃", alt: "⌥", ctrlName: "Control", altName: "Option", enter: "Return" };
     }
-    return { ctrl: "Ctrl", alt: "Alt", ctrlName: "Ctrl", altName: "Alt" };
+    return { ctrl: "Ctrl", alt: "Alt", ctrlName: "Ctrl", altName: "Alt", enter: "Enter" };
 }

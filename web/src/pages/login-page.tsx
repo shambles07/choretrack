@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Delete, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +6,8 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { IconTile } from "../lib/icons";
 import { ThemeToggle } from "../components/app-shell";
+import { TextField } from "../components/text-field";
+import { modifierLabels } from "../lib/platform";
 import type { DoerProfile, PublicUser } from "../../../shared/types";
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -170,13 +172,26 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [triedSubmit, setTriedSubmit] = useState(false);
     const loggedIn = useLoggedIn();
+    const keys = useMemo(() => modifierLabels(), []);
+
+    const usernameError = username.trim() === "" ? "Enter your username" : null;
+    // Every parent password is at least 8 characters (setup, People and the reset script all require it).
+    const passwordError =
+        password === "" ? "Enter your password" : password.length < 8 ? "Passwords are at least 8 characters" : null;
+    const ready = !usernameError && !passwordError;
 
     const submit = async (e: FormEvent) => {
         e.preventDefault();
+        if (!ready) {
+            setTriedSubmit(true);
+            document.getElementById(usernameError ? "username" : "password")?.focus();
+            return;
+        }
         setBusy(true);
         try {
-            const res = await api.post<{ user: PublicUser }>("/auth/login", { username, password });
+            const res = await api.post<{ user: PublicUser }>("/auth/login", { username: username.trim(), password });
             loggedIn(res.user);
         } catch (err) {
             setError((err as Error).message);
@@ -185,8 +200,21 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
         }
     };
 
+    // Tab and Shift+Tab cycle between the two fields; Enter submits; Esc leaves the form.
+    const onKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+        const id = (e.target as HTMLElement).id;
+        if (e.key === "Tab" && ((id === "password" && !e.shiftKey) || (id === "username" && e.shiftKey))) {
+            e.preventDefault();
+            document.getElementById(id === "password" ? "username" : "password")?.focus();
+        } else if (e.key === "Escape" && (id === "username" || id === "password")) {
+            e.preventDefault();
+            if (onBack) onBack();
+            else (e.target as HTMLElement).blur();
+        }
+    };
+
     return (
-        <form className="card w-full max-w-sm space-y-4 p-6" onSubmit={submit}>
+        <form className="card w-full max-w-sm space-y-4 p-6" onSubmit={submit} onKeyDown={onKeyDown} noValidate>
             {onBack && (
                 <button type="button" className="btn btn-ghost -ml-2 -mt-2 text-muted" onClick={onBack}>
                     <ArrowLeft size={18} /> Back
@@ -196,45 +224,68 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
                 <h1 className="text-2xl font-extrabold">Parent login</h1>
                 <p className="text-muted">Manage chores, approvals and rewards.</p>
             </div>
-            <div>
-                <label className="label" htmlFor="username">
-                    Username
-                </label>
-                <input
-                    id="username"
-                    className="input"
-                    // The "Parent login" button that opened this form is gone, so without this
-                    // nothing has focus and the first Tab lands in the page header, not the form.
-                    autoFocus
-                    autoComplete="username"
-                    autoCapitalize="none"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                />
-            </div>
-            <div>
-                <label className="label" htmlFor="password">
-                    Password
-                </label>
-                <input
-                    id="password"
-                    type="password"
-                    className="input"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-            </div>
+            <TextField
+                id="username"
+                label="Username"
+                quiet
+                showErrors={triedSubmit}
+                // The "Parent login" button that opened this form is gone, so without this
+                // nothing has focus and the first Tab lands in the page header, not the form.
+                autoFocus
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                value={username}
+                onChange={(v) => {
+                    setUsername(v);
+                    setError(null);
+                }}
+                error={usernameError}
+            />
+            <TextField
+                id="password"
+                label="Password"
+                type="password"
+                quiet
+                showErrors={triedSubmit}
+                autoComplete="current-password"
+                value={password}
+                onChange={(v) => {
+                    setPassword(v);
+                    setError(null);
+                }}
+                error={passwordError}
+            />
             {error && (
                 <p className="text-sm font-semibold text-danger" role="alert">
                     {error}
                 </p>
             )}
-            <button className="btn btn-primary w-full" disabled={busy}>
+            {/* The default action: always drawn as selected, because Enter submits from either field. */}
+            <button
+                type="submit"
+                className={`btn btn-primary btn-default-action w-full ${ready ? "is-ready" : ""}`}
+                disabled={busy}
+                aria-disabled={!ready}
+                aria-keyshortcuts="Enter"
+            >
                 Log in
+                <kbd className="enter-key" aria-hidden="true">
+                    {keys.enter} ⏎
+                </kbd>
             </button>
+            <p className={`min-h-5 text-center text-xs ${ready ? "font-semibold text-success" : "text-muted"}`} aria-live="polite">
+                {ready ? (
+                    <>
+                        All set. Press <kbd className="kbd-inline">{keys.enter} ⏎</kbd> to log in.
+                    </>
+                ) : (
+                    <>
+                        <kbd className="kbd-inline">Tab ⇥</kbd> switches fields · <kbd className="kbd-inline">Esc</kbd>{" "}
+                        {onBack ? "goes back" : "leaves the form"}
+                    </>
+                )}
+            </p>
         </form>
     );
 }
