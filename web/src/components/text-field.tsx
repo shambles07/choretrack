@@ -1,22 +1,9 @@
-import { useId, useState, type InputHTMLAttributes } from "react";
+import { useId, useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 type FieldState = "neutral" | "valid" | "invalid";
 
-// A labelled input that shows whether its value is acceptable.
-// Valid and invalid states each get an icon as well as a coloured outline, so they can't be
-// confused with the user's accent colour (which may itself be green or red).
-export function TextField({
-    id,
-    label,
-    value,
-    onChange,
-    error,
-    inputClassName = "",
-    quiet = false,
-    showErrors = false,
-    ...rest
-}: {
+type SharedProps = {
     id: string;
     label: string;
     value: string;
@@ -24,50 +11,87 @@ export function TextField({
     // Message to show when the value isn't acceptable; null when it's fine.
     error: string | null;
     inputClassName?: string;
-    // Quiet mode, for forms like login: valid input turns green straight away, but errors
-    // only show once the field has been left or `showErrors` is set (e.g. after a submit attempt).
+    // Eager mode (quiet=false): a focused field shows its error straight away. Used for Name
+    // and PIN, which were asked to warn as soon as they're selected while blank.
+    // Quiet mode (default): valid input turns green straight away, but errors only show once the
+    // field has been left, or once `showErrors` is set by a submit attempt.
     quiet?: boolean;
     showErrors?: boolean;
-} & Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "value" | "onChange">) {
+    // Shows "(optional)" after the label. An empty optional field stays neutral.
+    optional?: boolean;
+    // Keeps the label for screen readers but doesn't draw it (e.g. next to preset buttons).
+    hideLabel?: boolean;
+};
+
+type InputProps = SharedProps & { multiline?: false } & Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "value" | "onChange">;
+type TextareaProps = SharedProps & { multiline: true } & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "id" | "value" | "onChange">;
+
+// A labelled field that shows whether its value is acceptable.
+// Valid and invalid states each get an icon as well as a coloured outline, so they can't be
+// confused with the user's accent colour (which may itself be green or red).
+export function TextField(props: InputProps | TextareaProps) {
+    const {
+        id,
+        label,
+        value,
+        onChange,
+        error,
+        inputClassName = "",
+        quiet = true,
+        showErrors = false,
+        optional = false,
+        hideLabel = false,
+        multiline,
+        ...rest
+    } = props;
     const tooltipId = useId();
     const [focused, setFocused] = useState(false);
     const [touched, setTouched] = useState(false);
 
-    const engaged = focused || touched;
-    let state: FieldState = !engaged ? "neutral" : error ? "invalid" : value !== "" ? "valid" : "neutral";
-    if (quiet) {
-        state = error ? (touched || showErrors ? "invalid" : "neutral") : value !== "" ? "valid" : "neutral";
-    }
+    const errorVisible = quiet ? touched || showErrors : focused || touched || showErrors;
+    const validVisible = quiet || focused || touched;
+    const state: FieldState = error ? (errorVisible ? "invalid" : "neutral") : value !== "" && validVisible ? "valid" : "neutral";
     const showTooltip = focused && state === "invalid";
+
+    const shared = {
+        id,
+        value,
+        "data-state": state,
+        // Lets a form jump to the first problem when submitted too early, even before it's shown.
+        "data-error": error ? "true" : undefined,
+        "aria-invalid": state === "invalid",
+        "aria-describedby": state === "invalid" ? tooltipId : undefined,
+        className: `input pr-10 ${inputClassName}`,
+        onFocus: () => setFocused(true),
+        onBlur: () => {
+            setFocused(false);
+            setTouched(true);
+        },
+    };
 
     return (
         <div>
-            <label className="label" htmlFor={id}>
+            <label className={hideLabel ? "sr-only" : "label"} htmlFor={id}>
                 {label}
+                {optional && <span className="font-normal"> (optional)</span>}
             </label>
-            <div className="relative inline-block w-full">
-                <input
-                    {...rest}
-                    id={id}
-                    value={value}
-                    data-state={state}
-                    aria-invalid={state === "invalid"}
-                    aria-describedby={state === "invalid" ? tooltipId : undefined}
-                    className={`input pr-10 ${inputClassName}`}
-                    onChange={(e) => onChange(e.target.value)}
-                    onFocus={(e) => {
-                        setFocused(true);
-                        rest.onFocus?.(e);
-                    }}
-                    onBlur={(e) => {
-                        setFocused(false);
-                        setTouched(true);
-                        rest.onBlur?.(e);
-                    }}
-                />
+            <div className="relative w-full">
+                {multiline ? (
+                    <textarea
+                        {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+                        {...shared}
+                        onChange={(e) => onChange(e.target.value)}
+                    />
+                ) : (
+                    <input
+                        {...(rest as InputHTMLAttributes<HTMLInputElement>)}
+                        {...shared}
+                        onChange={(e) => onChange(e.target.value)}
+                    />
+                )}
                 {state !== "neutral" && (
                     <span
-                        className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 ${
+                        className={`pointer-events-none absolute right-3 ${multiline ? "top-3" : "top-1/2 -translate-y-1/2"} ${
                             state === "valid" ? "text-success" : "text-danger"
                         }`}
                         aria-hidden="true"
@@ -82,5 +106,16 @@ export function TextField({
                 )}
             </div>
         </div>
+    );
+}
+
+// The same red/green treatment for a group of buttons (e.g. "pick at least one day").
+export function GroupError({ error, show }: { error: string | null; show: boolean }) {
+    if (!error || !show) return null;
+    return (
+        <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-danger" role="alert">
+            <AlertCircle size={16} aria-hidden="true" />
+            {error}
+        </p>
     );
 }

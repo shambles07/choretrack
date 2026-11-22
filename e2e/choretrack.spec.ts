@@ -92,7 +92,7 @@ test("parent creates a chore from the form", async ({ page, request }, info) => 
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Chore", { exact: true }).fill(`Water plants (${info.project.name})`);
     await dialog.getByRole("button", { name: "Yard & Garden" }).click();
-    await dialog.getByRole("button", { name: "20", exact: true }).click();
+    await dialog.getByRole("button", { name: "20 points" }).click();
     await dialog.getByRole("button", { name: "Some days" }).click();
     await dialog.getByRole("button", { name: "Sat" }).click();
     await dialog.getByRole("button", { name: "Add chore" }).click();
@@ -125,12 +125,12 @@ test("typing a PIN keeps focus and the fields show red/green validation", async 
     await expect(pin).toHaveValue("1");
     await expect(name).toHaveValue("Sam");
     await expect(pin).toHaveAttribute("data-state", "invalid");
-    await expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Save" })).toHaveAttribute("aria-disabled", "true");
 
     await pin.pressSequentially("234");
     await expect(pin).toHaveValue("1234");
     await expect(pin).toHaveAttribute("data-state", "valid");
-    await expect(dialog.getByRole("button", { name: "Save" })).toBeEnabled();
+    await expect(dialog.getByRole("button", { name: "Save" })).toHaveAttribute("aria-disabled", "false");
     await dialog.getByRole("button", { name: "Cancel" }).click();
 });
 
@@ -169,7 +169,7 @@ test("clicking your avatar edits your profile and sets the accent colour", async
     await expect(name).toHaveValue(ADMIN.name);
 
     await name.fill("");
-    await expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Save" })).toHaveAttribute("aria-disabled", "true");
     await name.fill(ADMIN.name);
     await dialog.getByRole("button", { name: "Colour #22c55e" }).click();
     await dialog.getByRole("button", { name: "Save" }).click();
@@ -246,4 +246,79 @@ test("Esc on the parent login goes back to the avatar picker", async ({ page, re
     await expect(page.getByLabel("Username")).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("heading", { name: "Who's doing chores?" })).toBeVisible();
+});
+
+test("the chore form wraps Tab, validates and submits on Enter", async ({ page, request }, info) => {
+    await ensureFamily(request);
+    await loginParent(page);
+    await page.goto("/admin/chores");
+    await page.getByRole("button", { name: "New chore" }).click();
+    const dialog = page.getByRole("dialog", { name: "New chore" });
+    const title = dialog.getByLabel("Chore", { exact: true });
+    const points = dialog.getByLabel("Custom points");
+    const active = dialog.getByRole("switch", { name: "Chore active" });
+
+    // The cursor starts in the first field, and Tab wraps at both ends of the form.
+    await expect(title).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(active).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(title).toBeFocused();
+
+    // Enter on an empty form refuses, shows the problem and stays on it.
+    await page.keyboard.press("Enter");
+    await expect(title).toHaveAttribute("data-state", "invalid");
+    await expect(dialog.getByRole("tooltip")).toHaveText("The chore can't be blank");
+    await expect(title).toBeFocused();
+
+    await title.fill(`Tidy the shoes (${info.project.name})`);
+    await expect(title).toHaveAttribute("data-state", "valid");
+
+    // Bad points are flagged; a preset fixes them.
+    await points.fill("12x");
+    await points.blur();
+    await expect(points).toHaveAttribute("data-state", "invalid");
+    await dialog.getByRole("button", { name: "20 points" }).click();
+    await expect(points).toHaveValue("20");
+    await expect(points).toHaveAttribute("data-state", "valid");
+
+    // "Some days" with no days picked can't be saved.
+    await dialog.getByRole("button", { name: "Some days" }).click();
+    for (const day of ["Mon", "Tue", "Wed", "Thu", "Fri"]) await dialog.getByRole("button", { name: day }).click();
+    await title.press("Enter");
+    await expect(dialog.getByRole("alert")).toHaveText("Pick at least one day");
+    await expect(dialog.getByRole("button", { name: /Add chore/ })).toHaveAttribute("aria-disabled", "true");
+    await dialog.getByRole("button", { name: "Sat" }).click();
+    await expect(dialog.getByRole("alert")).toHaveCount(0);
+
+    await expect(dialog.getByRole("button", { name: /Add chore/ })).toHaveClass(/is-ready/);
+    await title.press("Enter");
+    await expect(page.getByText("Chore added")).toBeVisible();
+    await expect(page.getByText(`Tidy the shoes (${info.project.name})`)).toBeVisible();
+});
+
+test("change password shows mismatches and is ready once everything checks out", async ({ page, request }) => {
+    await ensureFamily(request);
+    await loginParent(page);
+    await page.goto("/admin/account");
+    const current = page.getByLabel("Current password");
+    const next = page.getByLabel("New password");
+    const confirm = page.getByLabel("Confirm");
+
+    await current.fill(ADMIN.password);
+    await next.fill("brand-new-pass");
+    await confirm.fill("brand-new-typo");
+    await confirm.blur();
+    await expect(confirm).toHaveAttribute("data-state", "invalid");
+    await confirm.focus();
+    await expect(page.getByRole("tooltip")).toHaveText("Passwords don't match");
+
+    await confirm.fill("brand-new-pass");
+    await expect(confirm).toHaveAttribute("data-state", "valid");
+    await expect(page.getByText("All set. Press")).toBeVisible();
+
+    // Tab wraps from the last field back to the first.
+    await confirm.focus();
+    await page.keyboard.press("Tab");
+    await expect(current).toBeFocused();
 });

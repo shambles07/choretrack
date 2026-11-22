@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Delete, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -7,7 +7,7 @@ import { useAuth } from "../lib/auth";
 import { IconTile } from "../lib/icons";
 import { ThemeToggle } from "../components/app-shell";
 import { TextField } from "../components/text-field";
-import { modifierLabels } from "../lib/platform";
+import { FormHint, SubmitButton, useFormFlow } from "../components/form-kit";
 import type { DoerProfile, PublicUser } from "../../../shared/types";
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -172,9 +172,7 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
-    const [triedSubmit, setTriedSubmit] = useState(false);
     const loggedIn = useLoggedIn();
-    const keys = useMemo(() => modifierLabels(), []);
 
     const usernameError = username.trim() === "" ? "Enter your username" : null;
     // Every parent password is at least 8 characters (setup, People and the reset script all require it).
@@ -182,41 +180,26 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
         password === "" ? "Enter your password" : password.length < 8 ? "Passwords are at least 8 characters" : null;
     const ready = !usernameError && !passwordError;
 
-    const submit = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!ready) {
-            setTriedSubmit(true);
-            document.getElementById(usernameError ? "username" : "password")?.focus();
-            return;
-        }
-        setBusy(true);
-        try {
-            const res = await api.post<{ user: PublicUser }>("/auth/login", { username: username.trim(), password });
-            loggedIn(res.user);
-        } catch (err) {
-            setError((err as Error).message);
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    // Tab and Shift+Tab cycle between the two fields; Enter submits; Esc leaves the form.
-    const onKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-        const id = (e.target as HTMLElement).id;
-        if (e.key === "Tab" && ((id === "password" && !e.shiftKey) || (id === "username" && e.shiftKey))) {
-            e.preventDefault();
-            document.getElementById(id === "password" ? "username" : "password")?.focus();
-        } else if (e.key === "Escape" && (id === "username" || id === "password")) {
-            e.preventDefault();
-            if (onBack) onBack();
-            else (e.target as HTMLElement).blur();
-        }
-    };
+    const { formId, tried, formProps } = useFormFlow({
+        ready,
+        onEscape: () => (onBack ? onBack() : (document.activeElement as HTMLElement | null)?.blur()),
+        onSubmit: async () => {
+            setBusy(true);
+            try {
+                const res = await api.post<{ user: PublicUser }>("/auth/login", { username: username.trim(), password });
+                loggedIn(res.user);
+            } catch (err) {
+                setError((err as Error).message);
+            } finally {
+                setBusy(false);
+            }
+        },
+    });
 
     return (
-        <form className="card w-full max-w-sm space-y-4 p-6" onSubmit={submit} onKeyDown={onKeyDown} noValidate>
+        <form className="card w-full max-w-sm space-y-4 p-6" {...formProps}>
             {onBack && (
-                <button type="button" className="btn btn-ghost -ml-2 -mt-2 text-muted" onClick={onBack}>
+                <button type="button" data-skip-tab className="btn btn-ghost -ml-2 -mt-2 text-muted" onClick={onBack}>
                     <ArrowLeft size={18} /> Back
                 </button>
             )}
@@ -227,8 +210,7 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
             <TextField
                 id="username"
                 label="Username"
-                quiet
-                showErrors={triedSubmit}
+                showErrors={tried}
                 // The "Parent login" button that opened this form is gone, so without this
                 // nothing has focus and the first Tab lands in the page header, not the form.
                 autoFocus
@@ -246,8 +228,7 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
                 id="password"
                 label="Password"
                 type="password"
-                quiet
-                showErrors={triedSubmit}
+                showErrors={tried}
                 autoComplete="current-password"
                 value={password}
                 onChange={(v) => {
@@ -261,31 +242,10 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
                     {error}
                 </p>
             )}
-            {/* The default action: always drawn as selected, because Enter submits from either field. */}
-            <button
-                type="submit"
-                className={`btn btn-primary btn-default-action w-full ${ready ? "is-ready" : ""}`}
-                disabled={busy}
-                aria-disabled={!ready}
-                aria-keyshortcuts="Enter"
-            >
+            <SubmitButton formId={formId} ready={ready} busy={busy} className="w-full">
                 Log in
-                <kbd className="enter-key" aria-hidden="true">
-                    {keys.enter} ⏎
-                </kbd>
-            </button>
-            <p className={`min-h-5 text-center text-xs ${ready ? "font-semibold text-success" : "text-muted"}`} aria-live="polite">
-                {ready ? (
-                    <>
-                        All set. Press <kbd className="kbd-inline">{keys.enter} ⏎</kbd> to log in.
-                    </>
-                ) : (
-                    <>
-                        <kbd className="kbd-inline">Tab ⇥</kbd> switches fields · <kbd className="kbd-inline">Esc</kbd>{" "}
-                        {onBack ? "goes back" : "leaves the form"}
-                    </>
-                )}
-            </p>
+            </SubmitButton>
+            <FormHint ready={ready} action="log in" escape={onBack ? "goes back" : "leaves the form"} className="min-h-5 text-center" />
         </form>
     );
 }

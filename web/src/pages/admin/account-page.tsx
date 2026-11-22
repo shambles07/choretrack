@@ -1,35 +1,16 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Tags, UserRound, Users } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { PageHeader, ThemeToggle } from "../../components/app-shell";
 import { useToast } from "../../components/toast";
+import { FormHint, SubmitButton, useFormFlow } from "../../components/form-kit";
+import { TextField } from "../../components/text-field";
+import { confirmError, passwordError } from "../../lib/validation";
 
 export function AdminAccountPage() {
     const { user } = useAuth();
-    const notify = useToast();
-    const [current, setCurrent] = useState("");
-    const [next, setNext] = useState("");
-    const [confirm, setConfirm] = useState("");
-
-    const submit = async (e: FormEvent) => {
-        e.preventDefault();
-        if (next !== confirm) {
-            notify("The new passwords don't match.", { tone: "error" });
-            return;
-        }
-        try {
-            await api.post("/admin/me/password", { current, next });
-            notify("Password changed", { tone: "success" });
-            setCurrent("");
-            setNext("");
-            setConfirm("");
-        } catch (err) {
-            notify((err as Error).message, { tone: "error" });
-        }
-    };
-
     return (
         <div className="max-w-xl space-y-6">
             <PageHeader title="My account" subtitle={`Logged in as @${user?.username}`} />
@@ -40,31 +21,89 @@ export function AdminAccountPage() {
                 </div>
                 <ThemeToggle />
             </div>
-            <form className="card space-y-4 p-5" onSubmit={submit}>
-                <h2 className="font-bold">Change password</h2>
-                <div>
-                    <label className="label" htmlFor="current">
-                        Current password
-                    </label>
-                    <input id="current" type="password" className="input" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <label className="label" htmlFor="next">
-                            New password
-                        </label>
-                        <input id="next" type="password" className="input" autoComplete="new-password" minLength={8} value={next} onChange={(e) => setNext(e.target.value)} required />
-                    </div>
-                    <div>
-                        <label className="label" htmlFor="confirm">
-                            Confirm
-                        </label>
-                        <input id="confirm" type="password" className="input" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
-                    </div>
-                </div>
-                <button className="btn btn-primary">Update password</button>
-            </form>
+            <ChangePasswordForm />
         </div>
+    );
+}
+
+function ChangePasswordForm() {
+    const notify = useToast();
+    const [current, setCurrent] = useState("");
+    const [next, setNext] = useState("");
+    const [confirm, setConfirm] = useState("");
+    const [busy, setBusy] = useState(false);
+    // Bumped after a successful change to reset the fields' green/red state too.
+    const [round, setRound] = useState(0);
+
+    const errors = {
+        current: current === "" ? "Enter your current password" : null,
+        next: passwordError(next) ?? (next === current ? "Pick a different password" : null),
+        confirm: confirmError(next, confirm),
+    };
+    const ready = Object.values(errors).every((e) => e === null);
+
+    const { formId, tried, formProps } = useFormFlow({
+        ready,
+        onEscape: () => (document.activeElement as HTMLElement | null)?.blur(),
+        onSubmit: async () => {
+            setBusy(true);
+            try {
+                await api.post("/admin/me/password", { current, next });
+                notify("Password changed", { tone: "success" });
+                setCurrent("");
+                setNext("");
+                setConfirm("");
+                setRound((r) => r + 1);
+            } catch (err) {
+                notify((err as Error).message, { tone: "error" });
+            } finally {
+                setBusy(false);
+            }
+        },
+    });
+
+    return (
+        <form key={round} className="card space-y-4 p-5" {...formProps}>
+            <h2 className="font-bold">Change password</h2>
+            <TextField
+                id="current"
+                label="Current password"
+                type="password"
+                autoComplete="current-password"
+                value={current}
+                onChange={setCurrent}
+                error={errors.current}
+                showErrors={tried}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                    id="next"
+                    label="New password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={next}
+                    onChange={setNext}
+                    error={errors.next}
+                    showErrors={tried}
+                />
+                <TextField
+                    id="confirm"
+                    label="Confirm"
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirm}
+                    onChange={setConfirm}
+                    error={errors.confirm}
+                    showErrors={tried}
+                />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <FormHint ready={ready} action="update your password" escape="leaves the form" />
+                <SubmitButton formId={formId} ready={ready} busy={busy}>
+                    Update password
+                </SubmitButton>
+            </div>
+        </form>
     );
 }
 
