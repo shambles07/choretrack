@@ -28,11 +28,18 @@
 
 ## D
 
+- [deployment.md](deployment.md) — port, Docker Compose, Node version, storage, update channel
+- [documentation.md](documentation.md) — README length and the docs/ split
+
 ## E
 
 ## F
 
+- [forms.md](forms.md) — validation behaviour, default-action buttons, keyboard flow in forms
+
 ## G
+
+- [gamification.md](gamification.md) — approval before points, no leaderboard, synthesised sound
 
 ## H
 
@@ -56,7 +63,11 @@
 
 ## R
 
+- [releasing.md](releasing.md) — changie alongside Keep the Why, tag pushing, release candidates, version history
+
 ## S
+
+- [security.md](security.md) — password hashing, kid PIN login, home-network-only posture
 
 ## T
 
