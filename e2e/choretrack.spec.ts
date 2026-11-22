@@ -180,3 +180,22 @@ test("clicking your avatar edits your profile and sets the accent colour", async
     // Put the default colour back for the other tests.
     await request.patch("/api/me", { data: { color: "#6366f1" } });
 });
+
+test("the parent login form works from the keyboard alone", async ({ page, request }) => {
+    await ensureFamily(request);
+    await page.goto("/login");
+    await page.getByRole("button", { name: "Parent login" }).click();
+
+    // The cursor starts in Username, Tab moves to Password, and Enter submits.
+    await expect(page.getByLabel("Username")).toBeFocused();
+    await page.keyboard.type(ADMIN.username);
+    await page.keyboard.press("Tab");
+    await expect(page.getByLabel("Password")).toBeFocused();
+    await page.keyboard.type(ADMIN.password);
+    await expect(page.getByLabel("Username")).toHaveValue(ADMIN.username);
+    await page.keyboard.press("Shift+Tab");
+    await expect(page.getByLabel("Username")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+});

@@ -48,7 +48,7 @@ export function SetupPage() {
                     <label className="label" htmlFor="name">
                         Your name
                     </label>
-                    <input id="name" className="input" value={form.name} onChange={update("name")} placeholder="Mom" required />
+                    <input id="name" className="input" autoFocus value={form.name} onChange={update("name")} placeholder="Mom" required />
                 </div>
                 <div>
                     <label className="label" htmlFor="username">

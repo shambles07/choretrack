@@ -203,6 +203,9 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
                 <input
                     id="username"
                     className="input"
+                    // The "Parent login" button that opened this form is gone, so without this
+                    // nothing has focus and the first Tab lands in the page header, not the form.
+                    autoFocus
                     autoComplete="username"
                     autoCapitalize="none"
                     value={username}
