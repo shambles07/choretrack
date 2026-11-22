@@ -63,7 +63,7 @@
 
 ## R
 
-- [releasing.md](releasing.md) — changie alongside Keep the Why, tag pushing, release candidates, version history
+- [releasing.md](releasing.md) — changie alongside Keep the Why, tag pushing, plain SemVer without release candidates, version history
 
 ## S
 

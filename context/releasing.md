@@ -40,31 +40,59 @@ reached GitHub. The steps are in `docs/releasing.md`.
 
 **Id:** 9ca6ef6e-8bd0-4d63-8f46-3d3a36b7fc5b
 **Type:** decision
-**Status:** active
-**Evidence:** inferred
-**Source:** commit 2587c6c (`.github/workflows/release.yml`); no stated reason found
+**Status:** superseded
+**Evidence:** confirmed
+**Source:** commit 2587c6c (`.github/workflows/release.yml`); maintainer explanation, development conversation, 2026-11-22
+**Superseded by:** f6d95cf1-72d0-4818-902a-dc2d04d3cf58
 
-A tag like `v1.1.0-rc.1` is published as a GitHub pre-release with the notes
-in `.changes/v1.1.0.md`.
+A tag like `v1.1.0-rc.1` was published as a GitHub pre-release with the notes
+in `.changes/v1.1.0.md`. Only `v1.0.0-rc.1` was ever published this way.
 
-**Reason (inferred):** a version can be tried before it is final, without a
-changelog entry per candidate.
+**Reason:** release candidates carried over from a team practice, where a
+candidate goes through internal testing before the real release.
 
 **Rejected alternative:** unknown.
+
+## Plain SemVer releases, no release candidates
+
+**Id:** f6d95cf1-72d0-4818-902a-dc2d04d3cf58
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer decision, development conversation, 2026-11-22
+**Revisit when:** more people than the maintainer test or use releases before they ship
+**See:** releasing.md#release-candidates-reuse-the-notes-of-the-version-they-precede — 9ca6ef6e-8bd0-4d63-8f46-3d3a36b7fc5b — as of 2026-11-22
+
+Every release is a plain `vMAJOR.MINOR.PATCH` that bumps exactly one number
+according to SemVer. The release workflow only reacts to such tags, and
+`make release` refuses pre-release suffixes and versions that are not higher
+than the last release. How to cut a release is in `docs/releasing.md`.
+
+**Reason:** the maintainer is, and is likely to remain, the only person
+building and using ChoreTrack, so there is no one else's internal testing for
+a candidate to gate. In the maintainer's experience a candidate rarely has
+everything it needs on the first pass anyway, so for a project this size the
+extra step costs more than it gives.
+
+**Rejected alternative:** keeping release candidates as an optional step.
+Useful for a team release process, not worth it here.
 
 ## No final v1.0.0 tag
 
 **Id:** 1e3f4dc4-7670-4115-b397-c4738985eb1e
 **Type:** decision
 **Status:** active
-**Evidence:** unknown
-**Source:** maintainer instruction to release as v1.1.0, development conversation, 2026-11-22
+**Evidence:** confirmed
+**Source:** maintainer instruction to release as v1.1.0, and the maintainer's explanation, development conversation, 2026-11-22
 
 Releases went from `v1.0.0-rc.1` straight to `v1.1.0`. `.changes/v1.0.0.md`
 exists (it holds the rc.1 notes), but there is no `v1.0.0` tag or release.
 
-**Reason:** unknown. The decision itself is confirmed; why `v1.0.0` was
-skipped was not recorded.
+**Reason:** when the next release was cut, `v1.1.0` was the version the
+development agent put forward: changie's automatic bump from the unreleased
+entries, since the v1.0.0 notes had already been batched for rc.1. The
+maintainer went with that suggestion; nothing about v1.0.0 itself was in
+question.
 
 **Rejected alternative:** tagging `v1.0.0` from `main` first, then releasing
 the later changes as `v1.1.0`. This was offered as an option in the pull

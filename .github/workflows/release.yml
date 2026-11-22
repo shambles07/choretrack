@@ -1,13 +1,13 @@
 # Publishes a GitHub release when a version tag (e.g. v1.2.0) is pushed.
-# The release notes come from the matching changie file in .changes/. A
-# release candidate tag (e.g. v1.0.0-rc.1) uses the notes of the version it
-# precedes (v1.0.0) and is published as a pre-release.
+# The release notes come from the matching changie file in .changes/.
+# Versions are plain SemVer (vMAJOR.MINOR.PATCH); there are no pre-release or
+# release-candidate tags (see context/releasing.md for why).
 # Create tags with `make tag` after the release commit is on main.
 name: Release
 
 on:
     push:
-        tags: ["v*"]
+        tags: ["v[0-9]+.[0-9]+.[0-9]+"]
 
 permissions:
     contents: write
@@ -23,12 +23,10 @@ jobs:
                   node-version: 22
                   cache: npm
 
-            - name: Check the tag matches a changelog entry
-              id: notes
+            - name: Check the tag is a plain version with a changelog entry
               run: |
-                  v="${GITHUB_REF_NAME%%-*}"
-                  test -f ".changes/$v.md" || { echo "No .changes/$v.md"; exit 1; }
-                  echo "file=.changes/$v.md" >> "$GITHUB_OUTPUT"
+                  [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Not a vMAJOR.MINOR.PATCH tag: $GITHUB_REF_NAME"; exit 1; }
+                  test -f ".changes/$GITHUB_REF_NAME.md" || { echo "No .changes/$GITHUB_REF_NAME.md"; exit 1; }
 
             - name: Test
               run: |
@@ -40,5 +38,4 @@ jobs:
               uses: softprops/action-gh-release@v2
               with:
                   name: ChoreTrack ${{ github.ref_name }}
-                  body_path: ${{ steps.notes.outputs.file }}
-                  prerelease: ${{ contains(github.ref_name, '-') }}
+                  body_path: .changes/${{ github.ref_name }}.md

@@ -81,7 +81,8 @@ during the build.
 **Evidence:** inferred
 **Source:** commit 1603078 (`Makefile`); no stated reason found
 
-`make update` and `make docker-update` check out the newest `v*` tag;
+`make update` and `make docker-update` check out the newest release tag (a
+plain `vMAJOR.MINOR.PATCH`; the old `v1.0.0-rc.1` tag is ignored);
 `CHANNEL=main` follows `main` instead.
 
 **Reason (inferred):** a home server should run versions that have been

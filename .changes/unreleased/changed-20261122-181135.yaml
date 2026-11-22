@@ -1,0 +1,3 @@
+kind: changed
+body: Releases are always a plain SemVer version (major, minor or patch); release candidates are no longer published, and `make release` refuses pre-release suffixes and versions that don't move forward
+time: 2026-11-22T18:11:35.507996873Z
