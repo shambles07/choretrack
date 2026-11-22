@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ClipboardList, Copy, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useLoad } from "../../lib/use-load";
+import { useNewParam } from "../../lib/use-new-param";
 import { useLocalPref } from "../../lib/theme";
 import { IconTile } from "../../lib/icons";
 import { describeSchedule, friendlyTime, toDateString } from "../../lib/format";
@@ -100,6 +101,12 @@ export function AdminChoresPage() {
             notify((e as Error).message, { tone: "error" });
         }
     };
+
+    const loaded = Boolean(chores.data && cats.data && users.data);
+    useNewParam(loaded, () => {
+        if (doers.length === 0) notify("Add a chore doer on the People page first.", { tone: "error" });
+        else setDraft(newDraft());
+    });
 
     if (!chores.data || !cats.data || !users.data) return <div className="card h-48 animate-pulse" />;
 

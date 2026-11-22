@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift, PartyPopper, RotateCcw, Star } from "lucide-react";
 import { IconTile } from "../lib/icons";
+import { useCountAsOpenDialog } from "./modal";
 import { bigCelebration } from "../lib/celebrate";
 import { playFanfare } from "../lib/sound";
 import type { Celebration } from "../../../shared/types";
@@ -22,6 +23,7 @@ export function CelebrationOverlay({
     onDone: () => void;
 }) {
     const [collected, setCollected] = useState(false);
+    useCountAsOpenDialog(true);
     const points = celebration.approved.reduce((sum, a) => sum + a.points, 0);
     const goodNews =
         celebration.approved.length > 0 ||

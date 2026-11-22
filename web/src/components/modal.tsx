@@ -2,6 +2,24 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 
+// Dialogs currently open. A closing dialog stays in the page while it animates out, so
+// shortcuts ask this instead of looking for [role="dialog"] elements.
+let openDialogs = 0;
+export function isAnyDialogOpen(): boolean {
+    return openDialogs > 0;
+}
+
+// Counts a dialog as open while `active` is true. Modal uses it; so does any other overlay.
+export function useCountAsOpenDialog(active: boolean): void {
+    useEffect(() => {
+        if (!active) return;
+        openDialogs += 1;
+        return () => {
+            openDialogs -= 1;
+        };
+    }, [active]);
+}
+
 // Bottom sheet on phones, centred dialog on larger screens.
 export function Modal({
     open,
@@ -20,6 +38,7 @@ export function Modal({
     const panel = useRef<HTMLDivElement>(null);
     // Callers usually pass a new onClose on every render. Reading it through a ref keeps the
     // effect below from re-running (and re-focusing the first field) on every keystroke.
+    useCountAsOpenDialog(open);
     const onCloseRef = useRef(onClose);
     useEffect(() => {
         onCloseRef.current = onClose;
@@ -28,13 +47,18 @@ export function Modal({
     useEffect(() => {
         if (!open) return;
         const previous = document.activeElement as HTMLElement | null;
-        const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
+        // Esc closes, and so does ⌘. (the macOS "cancel" shortcut).
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape" || (e.metaKey && e.key === ".")) {
+                e.preventDefault();
+                onCloseRef.current();
+            }
+        };
         document.addEventListener("keydown", onKey);
         document.body.style.overflow = "hidden";
-        window.setTimeout(() => {
-            const el = panel.current;
-            (el?.querySelector<HTMLElement>("input, select, textarea") ?? el?.querySelector<HTMLElement>("button"))?.focus();
-        }, 50);
+        // Focus straight away (the panel is already rendered) so fast typists don't lose keys.
+        const el = panel.current;
+        (el?.querySelector<HTMLElement>("input, select, textarea") ?? el?.querySelector<HTMLElement>("button"))?.focus();
         return () => {
             document.removeEventListener("keydown", onKey);
             document.body.style.overflow = "";

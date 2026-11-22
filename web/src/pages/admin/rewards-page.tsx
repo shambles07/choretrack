@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Gift, Pencil, Plus, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useLoad } from "../../lib/use-load";
+import { useNewParam } from "../../lib/use-new-param";
 import { IconTile, REWARD_ICON_KEYS } from "../../lib/icons";
 import { EmptyState, PageHeader } from "../../components/app-shell";
 import { useToast } from "../../components/toast";
@@ -20,6 +21,8 @@ export function AdminRewardsPage() {
     const notify = useToast();
     const { data, reload } = useLoad<{ rewards: Reward[]; redemptions: Redemption[] }>("/admin/rewards");
     const [draft, setDraft] = useState<Draft | null>(null);
+
+    useNewParam(Boolean(data), () => setDraft({ title: "", description: "", cost: 50, icon: "gift", active: true }));
 
     if (!data) return <div className="card h-48 animate-pulse" />;
 

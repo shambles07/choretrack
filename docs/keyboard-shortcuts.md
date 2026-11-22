@@ -2,6 +2,8 @@
 
 [← Back to README](../README.md)
 
+Press <kbd>?</kbd> anywhere in the app to see every shortcut you can use. <kbd>Esc</kbd> closes it, and so does <kbd>⌘</kbd> <kbd>.</kbd> on a Mac.
+
 Press a number to jump to that page in the sidebar. Hold a modifier key to see the numbers next to each page.
 
 > [!NOTE]
@@ -25,6 +27,19 @@ Press a number to jump to that page in the sidebar. Hold a modifier key to see t
 | Categories | <kbd>6</kbd> or <kbd>⌥</kbd> <kbd>6</kbd> | <kbd>6</kbd> or <kbd>Alt</kbd> + <kbd>6</kbd> |
 | My account | <kbd>7</kbd> or <kbd>⌥</kbd> <kbd>7</kbd> | <kbd>7</kbd> or <kbd>Alt</kbd> + <kbd>7</kbd> |
 
+## ⚡ Actions
+
+These work from any page. "New …" shortcuts take you to the right page and open its form.
+
+| Action | Key | Who |
+| --- | :---: | --- |
+| Show all shortcuts | <kbd>?</kbd> | Everyone |
+| Edit my profile | <kbd>P</kbd> | Everyone |
+| Switch between light and dark | <kbd>T</kbd> | Everyone |
+| New chore | <kbd>C</kbd> | Parents |
+| New reward | <kbd>R</kbd> | Parents |
+| New category | <kbd>A</kbd> | Parents |
+
 ## 🧒 Kid pages
 
 | Page | 🍎 macOS | 🪟 Windows · 🐧 Linux · 😈 FreeBSD |
@@ -42,7 +57,7 @@ Every form (logging in, chores, rewards, people, categories, your profile and pa
 | Next field (wraps to the first) | <kbd>⇥</kbd> | <kbd>Tab</kbd> |
 | Previous field (wraps to the last) | <kbd>⇧</kbd> <kbd>⇥</kbd> | <kbd>Shift</kbd> + <kbd>Tab</kbd> |
 | Submit, from any field | <kbd>Return ⏎</kbd> | <kbd>Enter ⏎</kbd> |
-| Close the dialog (on the login form: go back) | <kbd>Esc</kbd> | <kbd>Esc</kbd> |
+| Close the dialog (on the login form: go back) | <kbd>Esc</kbd> or <kbd>⌘</kbd> <kbd>.</kbd> | <kbd>Esc</kbd> |
 
 Fields turn **green** when they're valid. They turn **red**, with a tooltip saying why, once you've left them or tried to submit. The submit button always shows its key. It brightens once the form is ready, and the line beside it changes to *"All set. Press Return ⏎…"*. Submitting early takes you straight to the first problem.
 

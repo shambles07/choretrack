@@ -323,3 +323,94 @@ test("change password shows mismatches and is ready once everything checks out",
     await page.keyboard.press("Tab");
     await expect(current).toBeFocused();
 });
+
+test("? shows the shortcuts pop-up, and Esc or ⌘. closes it", async ({ page, request }) => {
+    await ensureFamily(request);
+    await loginParent(page);
+    const help = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+
+    await page.keyboard.press("Shift+Slash");
+    await expect(help).toBeVisible();
+    for (const label of ["Edit my profile", "New chore", "New reward", "New category", "Switch between light and dark"]) {
+        await expect(help.getByText(label)).toBeVisible();
+    }
+    await page.keyboard.press("Escape");
+    await expect(help).toBeHidden();
+
+    await page.keyboard.press("Shift+Slash");
+    await expect(help).toBeVisible();
+    await page.keyboard.press("Meta+Period");
+    await expect(help).toBeHidden();
+
+    // Clicking the sidebar hint (desktop) also opens it.
+    const hint = page.getByRole("button", { name: /for keyboard shortcuts/ });
+    if (await hint.isVisible()) {
+        await hint.click();
+        await expect(help).toBeVisible();
+    }
+});
+
+test("letter shortcuts open forms from any page and toggle the theme", async ({ page, request }) => {
+    await ensureFamily(request);
+    await loginParent(page);
+
+    // c, r and a work from any page: they go to the right page and open its form.
+    for (const [key, url, title] of [
+        ["c", /\/admin\/chores$/, "New chore"],
+        ["r", /\/admin\/rewards$/, "New reward"],
+        ["a", /\/admin\/categories$/, "New category"],
+    ] as const) {
+        await page.goto("/admin/history");
+        await expect(page.getByRole("heading", { name: "History" })).toBeVisible();
+        await page.keyboard.press(key);
+        await expect(page.getByRole("dialog", { name: title })).toBeVisible();
+        await expect(page).toHaveURL(url);
+        await page.keyboard.press("Escape");
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
+
+    // On the page itself too (the URL doesn't change, the form still opens).
+    await page.goto("/admin/chores");
+    await expect(page.getByRole("heading", { name: "Chores", level: 1 })).toBeVisible();
+    await page.keyboard.press("c");
+    await expect(page.getByRole("dialog", { name: "New chore" })).toBeVisible();
+    // While a dialog is open, letters are just typing.
+    await expect(page.getByLabel("Chore", { exact: true })).toBeFocused();
+    await page.keyboard.type("rat");
+    await expect(page.getByLabel("Chore", { exact: true })).toHaveValue("rat");
+    await page.keyboard.press("Escape");
+
+    // Typing in a field never triggers a shortcut.
+    await page.getByLabel("Search chores").fill("car");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.getByLabel("Search chores").blur();
+
+    await page.keyboard.press("p");
+    await expect(page.getByRole("dialog", { name: "My profile" })).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    const dark = async () => page.evaluate(() => document.documentElement.classList.contains("dark"));
+    const before = await dark();
+    await page.keyboard.press("t");
+    expect(await dark()).toBe(!before);
+    await page.keyboard.press("t");
+    expect(await dark()).toBe(before);
+});
+
+test("kids get only the shortcuts that apply to them", async ({ page, request }) => {
+    await ensureFamily(request);
+    await loginKid(page);
+    await page.keyboard.press("c");
+    await page.keyboard.press("r");
+    await expect(page).toHaveURL(/\/me$/);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await page.keyboard.press("Shift+Slash");
+    const help = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+    await expect(help.getByText("Edit my profile")).toBeVisible();
+    await expect(help.getByText("New chore")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    await page.keyboard.press("p");
+    await expect(page.getByRole("dialog", { name: "My profile" })).toBeVisible();
+});

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { useLoad } from "../../lib/use-load";
+import { useNewParam } from "../../lib/use-new-param";
 import { CATEGORY_ICON_KEYS, IconTile } from "../../lib/icons";
 import { PageHeader } from "../../components/app-shell";
 import { useToast } from "../../components/toast";
@@ -18,6 +19,8 @@ export function AdminCategoriesPage() {
     const notify = useToast();
     const { data, reload } = useLoad<{ categories: Category[] }>("/categories");
     const [draft, setDraft] = useState<Draft | null>(null);
+
+    useNewParam(Boolean(data), () => setDraft({ name: "", icon: "star", color: "#6366f1" }));
 
     if (!data) return <div className="card h-48 animate-pulse" />;
 
