@@ -23,6 +23,7 @@ C_DIM   := \033[2m
 C_CYAN  := \033[36m
 C_GREEN := \033[32m
 
+# Messages passed to $(call say,...) must not contain commas: Make splits call arguments on them.
 say = printf "$(C_CYAN)▸$(C_RESET) $(C_BOLD)%s$(C_RESET)\n" $(1)
 
 ##@ General
@@ -139,7 +140,7 @@ release: require-changie ## Batch changes into VERSION=auto|major|minor|patch|vX
 	@v="$$($(CHANGIE) latest)"; \
 		git add CHANGELOG.md .changes package.json package-lock.json; \
 		git commit --quiet -m "Release $$v"; \
-		$(call say,"Committed release $$v. Merge it into main, then run: make tag")
+		$(call say,"Committed release $$v. Merge it into main and then run: make tag")
 
 .PHONY: tag
 tag: require-changie ## Tag the latest release on main and push it (publishes the GitHub release)

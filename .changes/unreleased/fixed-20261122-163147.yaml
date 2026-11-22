@@ -1,0 +1,3 @@
+kind: fixed
+body: '`make release` no longer fails at the last step with a shell quoting error'
+time: 2026-11-22T16:31:47.541424015Z
