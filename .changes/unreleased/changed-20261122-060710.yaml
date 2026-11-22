@@ -1,3 +1,0 @@
-kind: changed
-body: 'Every form now works like the parent login: Tab wraps around, fields turn green when valid and red (with a tooltip) when not, Return/Enter submits from any field, and the submit button is shown as the default action'
-time: 2026-11-22T06:07:10.309680723Z

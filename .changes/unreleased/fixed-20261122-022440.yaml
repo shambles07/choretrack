@@ -1,3 +1,0 @@
-kind: fixed
-body: The parent login and first-run setup forms now put the cursor in the first field when they open, so Tab moves through the form instead of jumping to the page header
-time: 2026-11-22T02:24:40.111275995Z

@@ -1,3 +1,0 @@
-kind: changed
-body: 'Parent login: Tab wraps between the username and password fields, fields turn green when filled in correctly, and the Log in button is shown as the default action with a prompt to press Return/Enter'
-time: 2026-11-22T05:58:00.197349218Z
