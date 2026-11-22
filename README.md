@@ -13,6 +13,7 @@
 [![Node.js](https://img.shields.io/badge/node-22%2B-3c873a?style=flat-square&logo=nodedotjs&logoColor=white)](docs/installation.md)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ed?style=flat-square&logo=docker&logoColor=white)](docs/installation.md#-docker)
 [![License](https://img.shields.io/badge/license-Unlicense-ec4899?style=flat-square)](LICENSE)
+[![Keep the Why](https://keepthewhy.com/assets/badge.svg)](https://keepthewhy.com)
 
 [Features](#-features) • [Quick start](#-quick-start) • [Commands](#%EF%B8%8F-commands) • [Docs](#-docs) • [Changelog](CHANGELOG.md)
 
