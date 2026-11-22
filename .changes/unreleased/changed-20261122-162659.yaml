@@ -1,0 +1,3 @@
+kind: changed
+body: Docker Compose now defaults to the America/Chicago time zone (set `TZ` in `docker-compose.yml` to change it)
+time: 2026-11-22T16:26:59.528302688Z

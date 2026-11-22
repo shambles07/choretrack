@@ -10,6 +10,9 @@ import { useToast } from "../../components/toast";
 import { Modal } from "../../components/modal";
 import { PointsPill } from "../../components/game-widgets";
 import { ViewToggle, type ViewMode } from "../../components/chore-views";
+import { FormHint, SubmitButton, useFormFlow } from "../../components/form-kit";
+import { GroupError, TextField } from "../../components/text-field";
+import { requiredError, wholeNumberError } from "../../lib/validation";
 import { DAY_NAMES, type Category, type Chore, type PublicUser, type Recurrence } from "../../../../shared/types";
 
 type Draft = Omit<Chore, "id"> & { id?: number };
@@ -64,7 +67,7 @@ export function AdminChoresPage() {
 
     const save = async () => {
         if (!draft) return;
-        const { id, ...body } = draft;
+        const { id, ...body } = { ...draft, title: draft.title.trim(), description: draft.description.trim() };
         try {
             if (id) await api.put(`/admin/chores/${id}`, body);
             else await api.post("/admin/chores", body);
@@ -331,12 +334,36 @@ function ChoreForm({
     setDraft: (d: Draft) => void;
     categories: Category[];
     doers: PublicUser[];
-    onSave: () => void;
+    onSave: () => Promise<void>;
     onClose: () => void;
 }) {
     const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft({ ...draft, [key]: value });
     const toggleDay = (d: number) =>
         set("daysOfWeek", draft.daysOfWeek.includes(d) ? draft.daysOfWeek.filter((x) => x !== d) : [...draft.daysOfWeek, d].sort());
+    // Points are typed as text so a half-typed or wrong value can be shown as such.
+    const [pointsText, setPointsText] = useState(String(draft.points));
+    const [busy, setBusy] = useState(false);
+
+    const errors = {
+        title: requiredError(draft.title, "The chore"),
+        points: wholeNumberError(pointsText, 0, 1000, "points"),
+        days: draft.recurrence === "weekly" && draft.daysOfWeek.length === 0 ? "Pick at least one day" : null,
+    };
+    const ready = Object.values(errors).every((e) => e === null);
+
+    const { formId, tried, formProps } = useFormFlow({
+        ready,
+        onSubmit: async () => {
+            setBusy(true);
+            await onSave();
+            setBusy(false);
+        },
+    });
+
+    const setPoints = (text: string) => {
+        setPointsText(text);
+        if (wholeNumberError(text, 0, 1000, "points") === null) set("points", Number(text));
+    };
 
     return (
         <Modal
@@ -345,49 +372,37 @@ function ChoreForm({
             title={draft.id ? "Edit chore" : "New chore"}
             footer={
                 <>
+                    <FormHint ready={ready} action="save" escape="closes" className="mr-auto hidden sm:block" />
                     <button className="btn btn-ghost" onClick={onClose}>
                         Cancel
                     </button>
-                    <button className="btn btn-primary" onClick={onSave} disabled={!draft.title.trim()}>
+                    <SubmitButton formId={formId} ready={ready} busy={busy}>
                         {draft.id ? "Save changes" : "Add chore"}
-                    </button>
+                    </SubmitButton>
                 </>
             }
         >
-            <form
-                className="space-y-5"
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    onSave();
-                }}
-            >
-                <div>
-                    <label className="label" htmlFor="chore-title">
-                        Chore
-                    </label>
-                    <input
-                        id="chore-title"
-                        className="input"
-                        maxLength={80}
-                        value={draft.title}
-                        onChange={(e) => set("title", e.target.value)}
-                        placeholder="Feed the cat"
-                        required
-                    />
-                </div>
-                <div>
-                    <label className="label" htmlFor="chore-desc">
-                        Details (optional)
-                    </label>
-                    <textarea
-                        id="chore-desc"
-                        className="input"
-                        maxLength={500}
-                        value={draft.description}
-                        onChange={(e) => set("description", e.target.value)}
-                        placeholder="One scoop in the morning"
-                    />
-                </div>
+            <form className="space-y-5" {...formProps}>
+                <TextField
+                    id="chore-title"
+                    label="Chore"
+                    maxLength={80}
+                    placeholder="Feed the cat"
+                    value={draft.title}
+                    onChange={(title) => set("title", title)}
+                    error={errors.title}
+                    showErrors={tried}
+                />
+                <TextField
+                    id="chore-desc"
+                    label="Details"
+                    optional
+                    maxLength={500}
+                    placeholder="One scoop in the morning"
+                    value={draft.description}
+                    onChange={(description) => set("description", description)}
+                    error={null}
+                />
 
                 <fieldset>
                     <legend className="label">Category</legend>
@@ -409,32 +424,35 @@ function ChoreForm({
                     </div>
                 </fieldset>
 
-                <div>
-                    <label className="label" htmlFor="chore-points">
-                        Points
-                    </label>
-                    <div className="flex flex-wrap items-center gap-2">
+                <fieldset>
+                    <legend className="label">Points</legend>
+                    <div className="flex flex-wrap items-start gap-2">
                         {[5, 10, 20, 50].map((p) => (
                             <button
                                 type="button"
                                 key={p}
-                                className={`btn min-h-10 px-3 ${draft.points === p ? "btn-primary" : "btn-soft"}`}
-                                onClick={() => set("points", p)}
+                                className={`btn min-h-11 px-3 ${pointsText === String(p) ? "btn-primary" : "btn-soft"}`}
+                                onClick={() => setPoints(String(p))}
+                                aria-label={`${p} points`}
                             >
                                 {p}
                             </button>
                         ))}
-                        <input
-                            id="chore-points"
-                            type="number"
-                            min={0}
-                            max={1000}
-                            className="input w-24"
-                            value={draft.points}
-                            onChange={(e) => set("points", Math.max(0, Math.min(1000, Number(e.target.value) || 0)))}
-                        />
+                        <div className="w-32">
+                            <TextField
+                                id="chore-points"
+                                label="Custom points"
+                                hideLabel
+                                inputMode="numeric"
+                                maxLength={4}
+                                value={pointsText}
+                                onChange={setPoints}
+                                error={errors.points}
+                                showErrors={tried}
+                            />
+                        </div>
                     </div>
-                </div>
+                </fieldset>
 
                 {doers.length > 1 && (
                     <div>
@@ -480,21 +498,28 @@ function ChoreForm({
                         ))}
                     </div>
                     {draft.recurrence === "weekly" && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                            {DAY_NAMES.map((name, d) => (
-                                <button
-                                    type="button"
-                                    key={name}
-                                    onClick={() => toggleDay(d)}
-                                    aria-pressed={draft.daysOfWeek.includes(d)}
-                                    className={`h-10 w-12 rounded-xl text-sm font-bold ${
-                                        draft.daysOfWeek.includes(d) ? "bg-accent text-accent-fg" : "bg-surface-2 text-muted"
-                                    }`}
-                                >
-                                    {name}
-                                </button>
-                            ))}
-                        </div>
+                        <>
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                                {DAY_NAMES.map((name, d) => (
+                                    <button
+                                        type="button"
+                                        key={name}
+                                        // An early submit focuses the first [data-error]; it has to be focusable.
+                                        data-error={errors.days && d === 0 ? "true" : undefined}
+                                        onClick={() => toggleDay(d)}
+                                        aria-pressed={draft.daysOfWeek.includes(d)}
+                                        className={`h-10 w-12 rounded-xl text-sm font-bold ${
+                                            draft.daysOfWeek.includes(d)
+                                                ? "bg-accent text-accent-fg"
+                                                : `bg-surface-2 text-muted ${errors.days && tried ? "ring-2 ring-danger" : ""}`
+                                        }`}
+                                    >
+                                        {name}
+                                    </button>
+                                ))}
+                            </div>
+                            <GroupError error={errors.days} show={tried} />
+                        </>
                     )}
                 </fieldset>
 
@@ -509,7 +534,7 @@ function ChoreForm({
                                 type="date"
                                 className="input"
                                 value={draft.dueDate ?? draft.startDate}
-                                onChange={(e) => setDraft({ ...draft, dueDate: e.target.value, startDate: e.target.value })}
+                                onChange={(e) => e.target.value && setDraft({ ...draft, dueDate: e.target.value, startDate: e.target.value })}
                             />
                         </div>
                     ) : (
@@ -522,13 +547,13 @@ function ChoreForm({
                                 type="date"
                                 className="input"
                                 value={draft.startDate}
-                                onChange={(e) => set("startDate", e.target.value)}
+                                onChange={(e) => e.target.value && set("startDate", e.target.value)}
                             />
                         </div>
                     )}
                     <div>
                         <label className="label" htmlFor="chore-time">
-                            Done by (optional)
+                            Done by <span className="font-normal">(optional)</span>
                         </label>
                         <input
                             id="chore-time"
@@ -544,7 +569,6 @@ function ChoreForm({
                     <span className="text-sm font-semibold">Active</span>
                     <Switch checked={draft.active} onChange={(v) => set("active", v)} label="Chore active" />
                 </div>
-                <button type="submit" className="hidden" />
             </form>
         </Modal>
     );

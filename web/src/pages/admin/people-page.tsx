@@ -5,7 +5,8 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useLoad } from "../../lib/use-load";
 import { IconTile } from "../../lib/icons";
-import { nameError, pinError } from "../../lib/validation";
+import { nameError, passwordError, pinError, usernameError } from "../../lib/validation";
+import { FormHint, SubmitButton, useFormFlow } from "../../components/form-kit";
 import { PageHeader } from "../../components/app-shell";
 import { useToast } from "../../components/toast";
 import { Modal } from "../../components/modal";
@@ -48,16 +49,11 @@ export function AdminPeoplePage() {
     const admins = data.users.filter((u) => u.role === "admin");
     const welcome = params.get("welcome") === "1" && doers.length === 0;
 
-    const draftValid =
-        draft !== null &&
-        nameError(draft.name) === null &&
-        (draft.role === "admin" || pinError(draft.pin, !draft.id) === null);
-
     const save = async () => {
-        if (!draft || !draftValid) return;
-        const body: Record<string, unknown> = { name: draft.name, avatar: draft.avatar, color: draft.color };
+        if (!draft) return;
+        const body: Record<string, unknown> = { name: draft.name.trim(), avatar: draft.avatar, color: draft.color };
         if (draft.role === "admin") {
-            body.username = draft.username;
+            body.username = draft.username.trim();
             if (draft.password) body.password = draft.password;
         } else if (draft.pin) {
             body.pin = draft.pin;
@@ -163,85 +159,7 @@ export function AdminPeoplePage() {
                 <div className="card divide-y divide-line">{admins.map(row)}</div>
             </section>
 
-            {draft && (
-                <Modal
-                    open
-                    onClose={() => setDraft(null)}
-                    title={draft.id ? `Edit ${draft.name}` : draft.role === "doer" ? "Add chore doer" : "Add parent"}
-                    footer={
-                        <>
-                            <button className="btn btn-ghost" onClick={() => setDraft(null)}>
-                                Cancel
-                            </button>
-                            <button className="btn btn-primary" onClick={save} disabled={!draftValid}>
-                                Save
-                            </button>
-                        </>
-                    }
-                >
-                    <form
-                        className="space-y-5"
-                        noValidate
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            void save();
-                        }}
-                    >
-                        <ProfileFields
-                            idPrefix="person"
-                            values={draft}
-                            onChange={(values) => setDraft({ ...draft, ...values })}
-                        />
-                        {draft.role === "doer" ? (
-                            <div className="w-48">
-                                <TextField
-                                    id="person-pin"
-                                    label={draft.id ? "New PIN (blank keeps the old one)" : "4-digit PIN"}
-                                    inputClassName="text-center text-xl tracking-[0.5em]"
-                                    inputMode="numeric"
-                                    maxLength={4}
-                                    autoComplete="off"
-                                    value={draft.pin}
-                                    onChange={(pin) => setDraft({ ...draft, pin: pin.replace(/\D/g, "").slice(0, 4) })}
-                                    error={pinError(draft.pin, !draft.id)}
-                                />
-                            </div>
-                        ) : (
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div>
-                                    <label className="label" htmlFor="person-username">
-                                        Username
-                                    </label>
-                                    <input
-                                        id="person-username"
-                                        className="input"
-                                        autoCapitalize="none"
-                                        value={draft.username}
-                                        onChange={(e) => setDraft({ ...draft, username: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="label" htmlFor="person-password">
-                                        {draft.id ? "New password (optional)" : "Password"}
-                                    </label>
-                                    <input
-                                        id="person-password"
-                                        type="password"
-                                        className="input"
-                                        autoComplete="new-password"
-                                        minLength={8}
-                                        value={draft.password}
-                                        onChange={(e) => setDraft({ ...draft, password: e.target.value })}
-                                        required={!draft.id}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        <button type="submit" className="hidden" />
-                    </form>
-                </Modal>
-            )}
+            {draft && <PersonDialog draft={draft} setDraft={setDraft} onSave={save} onClose={() => setDraft(null)} />}
 
             <Modal
                 open={deleting !== null}
@@ -265,5 +183,110 @@ export function AdminPeoplePage() {
                 </p>
             </Modal>
         </div>
+    );
+}
+
+function personErrors(draft: Draft) {
+    return {
+        name: nameError(draft.name),
+        pin: draft.role === "doer" ? pinError(draft.pin, !draft.id) : null,
+        username: draft.role === "admin" ? usernameError(draft.username) : null,
+        password: draft.role === "admin" ? passwordError(draft.password, !draft.id) : null,
+    };
+}
+
+function PersonDialog({
+    draft,
+    setDraft,
+    onSave,
+    onClose,
+}: {
+    draft: Draft;
+    setDraft: (d: Draft) => void;
+    onSave: () => Promise<void>;
+    onClose: () => void;
+}) {
+    const [busy, setBusy] = useState(false);
+    const errors = personErrors(draft);
+    const ready = Object.values(errors).every((e) => e === null);
+    const { formId, tried, formProps } = useFormFlow({
+        ready,
+        onSubmit: async () => {
+            setBusy(true);
+            await onSave();
+            setBusy(false);
+        },
+    });
+
+    return (
+        <Modal
+            open
+            onClose={onClose}
+            title={draft.id ? `Edit ${draft.name || "person"}` : draft.role === "doer" ? "Add chore doer" : "Add parent"}
+            footer={
+                <>
+                    <FormHint ready={ready} action="save" escape="closes" className="mr-auto hidden sm:block" />
+                    <button className="btn btn-ghost" onClick={onClose}>
+                        Cancel
+                    </button>
+                    <SubmitButton formId={formId} ready={ready} busy={busy}>
+                        Save
+                    </SubmitButton>
+                </>
+            }
+        >
+            <form className="space-y-5" {...formProps}>
+                <ProfileFields
+                    idPrefix="person"
+                    values={draft}
+                    onChange={(values) => setDraft({ ...draft, ...values })}
+                    showErrors={tried}
+                />
+                {draft.role === "doer" ? (
+                    <div className="w-48">
+                        <TextField
+                            id="person-pin"
+                            label={draft.id ? "New PIN" : "4-digit PIN"}
+                            optional={Boolean(draft.id)}
+                            quiet={false}
+                            showErrors={tried}
+                            inputClassName="text-center text-xl tracking-[0.5em]"
+                            inputMode="numeric"
+                            maxLength={4}
+                            autoComplete="off"
+                            value={draft.pin}
+                            onChange={(pin) => setDraft({ ...draft, pin: pin.replace(/\D/g, "").slice(0, 4) })}
+                            error={errors.pin}
+                        />
+                    </div>
+                ) : (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <TextField
+                            id="person-username"
+                            label="Username"
+                            autoCapitalize="none"
+                            autoComplete="off"
+                            spellCheck={false}
+                            maxLength={40}
+                            value={draft.username}
+                            onChange={(username) => setDraft({ ...draft, username })}
+                            error={errors.username}
+                            showErrors={tried}
+                        />
+                        <TextField
+                            id="person-password"
+                            label={draft.id ? "New password" : "Password"}
+                            optional={Boolean(draft.id)}
+                            type="password"
+                            autoComplete="new-password"
+                            value={draft.password}
+                            onChange={(password) => setDraft({ ...draft, password })}
+                            error={errors.password}
+                            showErrors={tried}
+                        />
+                    </div>
+                )}
+            </form>
+        </Modal>
     );
 }

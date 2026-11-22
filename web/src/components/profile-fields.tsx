@@ -14,10 +14,12 @@ export function ProfileFields({
     values,
     onChange,
     idPrefix,
+    showErrors = false,
 }: {
     values: ProfileValues;
     onChange: (values: ProfileValues) => void;
     idPrefix: string;
+    showErrors?: boolean;
 }) {
     return (
         <>
@@ -32,6 +34,9 @@ export function ProfileFields({
                         value={values.name}
                         onChange={(name) => onChange({ ...values, name })}
                         error={nameError(values.name)}
+                        // Name warns the moment it's selected while blank, as originally asked.
+                        quiet={false}
+                        showErrors={showErrors}
                     />
                 </div>
             </div>

@@ -9,6 +9,9 @@ import { Modal } from "../../components/modal";
 import { IconPicker } from "../../components/pickers";
 import { PointsPill } from "../../components/game-widgets";
 import { Switch } from "./chores-page";
+import { FormHint, SubmitButton, useFormFlow } from "../../components/form-kit";
+import { TextField } from "../../components/text-field";
+import { requiredError, wholeNumberError } from "../../lib/validation";
 import type { Redemption, Reward } from "../../../../shared/types";
 
 type Draft = Omit<Reward, "id"> & { id?: number };
@@ -21,7 +24,7 @@ export function AdminRewardsPage() {
     if (!data) return <div className="card h-48 animate-pulse" />;
 
     const save = async (d: Draft) => {
-        const { id, ...body } = d;
+        const { id, ...body } = { ...d, title: d.title.trim(), description: d.description.trim() };
         try {
             if (id) await api.put(`/admin/rewards/${id}`, body);
             else await api.post("/admin/rewards", body);
@@ -117,65 +120,92 @@ export function AdminRewardsPage() {
                 </section>
             )}
 
-            {draft && (
-                <Modal
-                    open
-                    onClose={() => setDraft(null)}
-                    title={draft.id ? "Edit reward" : "New reward"}
-                    footer={
-                        <>
-                            <button className="btn btn-ghost" onClick={() => setDraft(null)}>
-                                Cancel
-                            </button>
-                            <button className="btn btn-primary" onClick={() => save(draft)} disabled={!draft.title.trim()}>
-                                Save
-                            </button>
-                        </>
-                    }
-                >
-                    <div className="space-y-5">
-                        <div>
-                            <label className="label" htmlFor="reward-title">
-                                Reward
-                            </label>
-                            <input
-                                id="reward-title"
-                                className="input"
-                                maxLength={80}
-                                value={draft.title}
-                                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                                placeholder="Movie night pick"
-                            />
-                        </div>
-                        <div>
-                            <label className="label" htmlFor="reward-desc">
-                                Details (optional)
-                            </label>
-                            <input
-                                id="reward-desc"
-                                className="input"
-                                maxLength={300}
-                                value={draft.description}
-                                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="label" htmlFor="reward-cost">
-                                Cost in points
-                            </label>
-                            <input
-                                id="reward-cost"
-                                type="number"
-                                min={1}
-                                className="input w-32"
-                                value={draft.cost}
-                                onChange={(e) => setDraft({ ...draft, cost: Math.max(1, Number(e.target.value) || 1) })}
-                            />
-                        </div>
-                        <IconPicker label="Icon" icons={REWARD_ICON_KEYS} value={draft.icon} color="#eab308" onChange={(icon) => setDraft({ ...draft, icon })} />
-                    </div>
-                </Modal>
-            )}
+            {draft && <RewardDialog draft={draft} setDraft={setDraft} onSave={() => save(draft)} onClose={() => setDraft(null)} />}
         </div>
+    );
+}
+
+function RewardDialog({
+    draft,
+    setDraft,
+    onSave,
+    onClose,
+}: {
+    draft: Draft;
+    setDraft: (d: Draft) => void;
+    onSave: () => Promise<void>;
+    onClose: () => void;
+}) {
+    const [costText, setCostText] = useState(String(draft.cost));
+    const [busy, setBusy] = useState(false);
+    const errors = {
+        title: requiredError(draft.title, "The reward"),
+        cost: wholeNumberError(costText, 1, 100000, "a cost"),
+    };
+    const ready = Object.values(errors).every((e) => e === null);
+    const { formId, tried, formProps } = useFormFlow({
+        ready,
+        onSubmit: async () => {
+            setBusy(true);
+            await onSave();
+            setBusy(false);
+        },
+    });
+
+    return (
+        <Modal
+            open
+            onClose={onClose}
+            title={draft.id ? "Edit reward" : "New reward"}
+            footer={
+                <>
+                    <FormHint ready={ready} action="save" escape="closes" className="mr-auto hidden sm:block" />
+                    <button className="btn btn-ghost" onClick={onClose}>
+                        Cancel
+                    </button>
+                    <SubmitButton formId={formId} ready={ready} busy={busy}>
+                        Save
+                    </SubmitButton>
+                </>
+            }
+        >
+            <form className="space-y-5" {...formProps}>
+                <TextField
+                    id="reward-title"
+                    label="Reward"
+                    maxLength={80}
+                    placeholder="Movie night pick"
+                    value={draft.title}
+                    onChange={(title) => setDraft({ ...draft, title })}
+                    error={errors.title}
+                    showErrors={tried}
+                />
+                <TextField
+                    id="reward-desc"
+                    label="Details"
+                    optional
+                    maxLength={300}
+                    value={draft.description}
+                    onChange={(description) => setDraft({ ...draft, description })}
+                    error={null}
+                />
+                <div className="w-40">
+                    <TextField
+                        id="reward-cost"
+                        label="Cost in points"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={costText}
+                        onChange={(text) => {
+                            setCostText(text);
+                            if (wholeNumberError(text, 1, 100000, "a cost") === null) setDraft({ ...draft, cost: Number(text) });
+                        }}
+                        error={errors.cost}
+                        showErrors={tried}
+                    />
+                </div>
+                <IconPicker label="Icon" icons={REWARD_ICON_KEYS} value={draft.icon} color="#eab308" onChange={(icon) => setDraft({ ...draft, icon })} />
+            </form>
+        </Modal>
     );
 }

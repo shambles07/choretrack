@@ -33,13 +33,29 @@ Press a number to jump to that page in the sidebar. Hold a modifier key to see t
 | Rewards | <kbd>2</kbd> | <kbd>2</kbd> |
 | Trophies | <kbd>3</kbd> | <kbd>3</kbd> |
 
+## 📝 Forms
+
+Every form (logging in, chores, rewards, people, categories, your profile and password) works the same way.
+
+| Key | 🍎 macOS | 🪟 Windows · 🐧 Linux · 😈 FreeBSD |
+| --- | :---: | :---: |
+| Next field (wraps to the first) | <kbd>⇥</kbd> | <kbd>Tab</kbd> |
+| Previous field (wraps to the last) | <kbd>⇧</kbd> <kbd>⇥</kbd> | <kbd>Shift</kbd> + <kbd>Tab</kbd> |
+| Submit, from any field | <kbd>Return ⏎</kbd> | <kbd>Enter ⏎</kbd> |
+| Close the dialog (on the login form: go back) | <kbd>Esc</kbd> | <kbd>Esc</kbd> |
+
+Fields turn **green** when they're valid. They turn **red**, with a tooltip saying why, once you've left them or tried to submit. The submit button always shows its key. It brightens once the form is ready, and the line beside it changes to *"All set. Press Return ⏎…"*. Submitting early takes you straight to the first problem.
+
+> [!NOTE]
+> **Name** and **PIN** warn as soon as they're selected while blank. Every other field waits until you leave it.
+
 ## Elsewhere
 
 | Where | Key | Does |
 | --- | :---: | --- |
 | PIN pad | <kbd>0</kbd>–<kbd>9</kbd> | Types a digit |
 | PIN pad | <kbd>⌫</kbd> | Deletes a digit |
-| Any dialog | <kbd>Esc</kbd> | Closes it |
+| PIN pad | <kbd>Esc</kbd> | Goes back to the avatar picker |
 
 > [!TIP]
 > Shortcuts pause while you're typing in a field or a dialog is open, so typing <kbd>5</kbd> into a search box won't jump to People. <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + number is left to the browser for switching tabs.

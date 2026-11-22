@@ -9,6 +9,8 @@ import { friendlyDate } from "../../lib/format";
 import { EmptyState, PageHeader } from "../../components/app-shell";
 import { useToast } from "../../components/toast";
 import { Modal } from "../../components/modal";
+import { FormHint, SubmitButton, useFormFlow } from "../../components/form-kit";
+import { TextField } from "../../components/text-field";
 import { ProgressRing, PointsPill } from "../../components/game-widgets";
 import type { ChoreInstance, DoerStats, PublicUser, Redemption } from "../../../../shared/types";
 
@@ -23,7 +25,6 @@ export function AdminOverviewPage() {
     const notify = useToast();
     const { data, reload } = useLoad<Overview>("/admin/overview");
     const [rejecting, setRejecting] = useState<ChoreInstance | null>(null);
-    const [note, setNote] = useState("");
     const [busy, setBusy] = useState(false);
 
     if (!data) return <div className="card h-48 animate-pulse" />;
@@ -59,15 +60,15 @@ export function AdminOverviewPage() {
             for (const i of data.approvals) await api.post(`/admin/instances/${i.id}/approve`);
         }, `Approved ${data.approvals.length} chores`);
 
-    const reject = () => {
+    const reject = async (note: string) => {
         if (!rejecting) return;
         const target = rejecting;
-        void act(() => api.post(`/admin/instances/${target.id}/reject`, { note: note.trim() || undefined }), `Sent "${target.title}" back`, () => api.post(`/admin/instances/${target.id}/unreview`)).then(
-            () => {
-                setRejecting(null);
-                setNote("");
-            },
+        await act(
+            () => api.post(`/admin/instances/${target.id}/reject`, { note: note.trim() || undefined }),
+            `Sent "${target.title}" back`,
+            () => api.post(`/admin/instances/${target.id}/unreview`),
         );
+        setRejecting(null);
     };
 
     return (
@@ -210,36 +211,60 @@ export function AdminOverviewPage() {
                 </section>
             )}
 
-            <Modal
-                open={rejecting !== null}
-                onClose={() => setRejecting(null)}
-                title="Send back for another go"
-                footer={
-                    <>
-                        <button className="btn btn-ghost" onClick={() => setRejecting(null)}>
-                            Cancel
-                        </button>
-                        <button className="btn btn-primary" onClick={reject} disabled={busy}>
-                            Send back
-                        </button>
-                    </>
-                }
-            >
-                <p className="mb-3">
-                    <strong>{rejecting?.title}</strong> will go back on the list. Add a friendly note about what's left to do.
-                </p>
-                <label className="label" htmlFor="note">
-                    Note (optional)
-                </label>
-                <textarea
-                    id="note"
-                    className="input"
-                    maxLength={200}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Don't forget the pillows!"
-                />
-            </Modal>
+            {rejecting && (
+                <SendBackDialog chore={rejecting} busy={busy} onSend={reject} onClose={() => setRejecting(null)} />
+            )}
         </div>
+    );
+}
+
+function SendBackDialog({
+    chore,
+    busy,
+    onSend,
+    onClose,
+}: {
+    chore: ChoreInstance;
+    busy: boolean;
+    onSend: (note: string) => Promise<void>;
+    onClose: () => void;
+}) {
+    const [note, setNote] = useState("");
+    // The note is optional, so the form is always ready to send.
+    const { formId, formProps } = useFormFlow({ ready: true, onSubmit: () => onSend(note) });
+
+    return (
+        <Modal
+            open
+            onClose={onClose}
+            title="Send back for another go"
+            footer={
+                <>
+                    <FormHint ready action="send it back" className="mr-auto hidden sm:block" />
+                    <button className="btn btn-ghost" onClick={onClose}>
+                        Cancel
+                    </button>
+                    <SubmitButton formId={formId} ready busy={busy}>
+                        Send back
+                    </SubmitButton>
+                </>
+            }
+        >
+            <form className="space-y-3" {...formProps}>
+                <p>
+                    <strong>{chore.title}</strong> will go back on the list. Add a friendly note about what's left to do.
+                </p>
+                <TextField
+                    id="note"
+                    label="Note"
+                    optional
+                    maxLength={200}
+                    placeholder="Don't forget the pillows!"
+                    value={note}
+                    onChange={setNote}
+                    error={null}
+                />
+            </form>
+        </Modal>
     );
 }

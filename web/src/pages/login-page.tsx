@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Delete, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +6,8 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { IconTile } from "../lib/icons";
 import { ThemeToggle } from "../components/app-shell";
+import { TextField } from "../components/text-field";
+import { FormHint, SubmitButton, useFormFlow } from "../components/form-kit";
 import type { DoerProfile, PublicUser } from "../../../shared/types";
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -172,23 +174,32 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
     const [busy, setBusy] = useState(false);
     const loggedIn = useLoggedIn();
 
-    const submit = async (e: FormEvent) => {
-        e.preventDefault();
-        setBusy(true);
-        try {
-            const res = await api.post<{ user: PublicUser }>("/auth/login", { username, password });
-            loggedIn(res.user);
-        } catch (err) {
-            setError((err as Error).message);
-        } finally {
-            setBusy(false);
-        }
-    };
+    const usernameError = username.trim() === "" ? "Enter your username" : null;
+    // Every parent password is at least 8 characters (setup, People and the reset script all require it).
+    const passwordError =
+        password === "" ? "Enter your password" : password.length < 8 ? "Passwords are at least 8 characters" : null;
+    const ready = !usernameError && !passwordError;
+
+    const { formId, tried, formProps } = useFormFlow({
+        ready,
+        onEscape: () => (onBack ? onBack() : (document.activeElement as HTMLElement | null)?.blur()),
+        onSubmit: async () => {
+            setBusy(true);
+            try {
+                const res = await api.post<{ user: PublicUser }>("/auth/login", { username: username.trim(), password });
+                loggedIn(res.user);
+            } catch (err) {
+                setError((err as Error).message);
+            } finally {
+                setBusy(false);
+            }
+        },
+    });
 
     return (
-        <form className="card w-full max-w-sm space-y-4 p-6" onSubmit={submit}>
+        <form className="card w-full max-w-sm space-y-4 p-6" {...formProps}>
             {onBack && (
-                <button type="button" className="btn btn-ghost -ml-2 -mt-2 text-muted" onClick={onBack}>
+                <button type="button" data-skip-tab className="btn btn-ghost -ml-2 -mt-2 text-muted" onClick={onBack}>
                     <ArrowLeft size={18} /> Back
                 </button>
             )}
@@ -196,42 +207,45 @@ function ParentLogin({ onBack }: { onBack?: () => void }) {
                 <h1 className="text-2xl font-extrabold">Parent login</h1>
                 <p className="text-muted">Manage chores, approvals and rewards.</p>
             </div>
-            <div>
-                <label className="label" htmlFor="username">
-                    Username
-                </label>
-                <input
-                    id="username"
-                    className="input"
-                    autoComplete="username"
-                    autoCapitalize="none"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                />
-            </div>
-            <div>
-                <label className="label" htmlFor="password">
-                    Password
-                </label>
-                <input
-                    id="password"
-                    type="password"
-                    className="input"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-            </div>
+            <TextField
+                id="username"
+                label="Username"
+                showErrors={tried}
+                // The "Parent login" button that opened this form is gone, so without this
+                // nothing has focus and the first Tab lands in the page header, not the form.
+                autoFocus
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                value={username}
+                onChange={(v) => {
+                    setUsername(v);
+                    setError(null);
+                }}
+                error={usernameError}
+            />
+            <TextField
+                id="password"
+                label="Password"
+                type="password"
+                showErrors={tried}
+                autoComplete="current-password"
+                value={password}
+                onChange={(v) => {
+                    setPassword(v);
+                    setError(null);
+                }}
+                error={passwordError}
+            />
             {error && (
                 <p className="text-sm font-semibold text-danger" role="alert">
                     {error}
                 </p>
             )}
-            <button className="btn btn-primary w-full" disabled={busy}>
+            <SubmitButton formId={formId} ready={ready} busy={busy} className="w-full">
                 Log in
-            </button>
+            </SubmitButton>
+            <FormHint ready={ready} action="log in" escape={onBack ? "goes back" : "leaves the form"} className="min-h-5 text-center" />
         </form>
     );
 }

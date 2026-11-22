@@ -251,7 +251,7 @@ export function AppShell() {
                 </div>
             </nav>
 
-            <ProfileDialog open={editingProfile} onClose={() => setEditingProfile(false)} />
+            {editingProfile && <ProfileDialog open onClose={() => setEditingProfile(false)} />}
         </div>
     );
 }

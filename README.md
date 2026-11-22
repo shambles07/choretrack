@@ -40,7 +40,7 @@ Parents add chores. Kids tick them off, get confetti and a jingle, and earn poin
 | 🎉 **Celebrations** | Confetti and original jingles, made in the browser with no audio files |
 | 🎨 **Your colours** | Light and dark modes; each person's favourite colour is their accent |
 | 📱 **Any screen** | Phone, tablet and desktop, in card or table view; installable as an app |
-| ⌨️ **Keyboard first** | Number keys switch pages, with the right key symbols for your OS |
+| ⌨️ **Keyboard first** | Number keys switch pages; every form wraps <kbd>Tab</kbd>, checks itself as you type and submits on <kbd>Return</kbd> |
 
 ## 🚀 Quick start
 

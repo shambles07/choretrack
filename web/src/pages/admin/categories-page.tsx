@@ -7,6 +7,9 @@ import { PageHeader } from "../../components/app-shell";
 import { useToast } from "../../components/toast";
 import { Modal } from "../../components/modal";
 import { ColorPicker, IconPicker } from "../../components/pickers";
+import { FormHint, SubmitButton, useFormFlow } from "../../components/form-kit";
+import { TextField } from "../../components/text-field";
+import { requiredError } from "../../lib/validation";
 import type { Category } from "../../../../shared/types";
 
 type Draft = Omit<Category, "id"> & { id?: number };
@@ -20,7 +23,7 @@ export function AdminCategoriesPage() {
 
     const save = async () => {
         if (!draft) return;
-        const { id, ...body } = draft;
+        const { id, ...body } = { ...draft, name: draft.name.trim() };
         try {
             if (id) await api.put(`/admin/categories/${id}`, body);
             else await api.post("/admin/categories", body);
@@ -65,40 +68,64 @@ export function AdminCategoriesPage() {
                     </div>
                 ))}
             </div>
-            {draft && (
-                <Modal
-                    open
-                    onClose={() => setDraft(null)}
-                    title={draft.id ? "Edit category" : "New category"}
-                    footer={
-                        <>
-                            <button className="btn btn-ghost" onClick={() => setDraft(null)}>
-                                Cancel
-                            </button>
-                            <button className="btn btn-primary" onClick={save} disabled={!draft.name.trim()}>
-                                Save
-                            </button>
-                        </>
-                    }
-                >
-                    <div className="space-y-5">
-                        <div>
-                            <label className="label" htmlFor="cat-name">
-                                Name
-                            </label>
-                            <input
-                                id="cat-name"
-                                className="input"
-                                maxLength={40}
-                                value={draft.name}
-                                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                            />
-                        </div>
-                        <IconPicker label="Icon" icons={CATEGORY_ICON_KEYS} value={draft.icon} color={draft.color} onChange={(icon) => setDraft({ ...draft, icon })} />
-                        <ColorPicker value={draft.color} onChange={(color) => setDraft({ ...draft, color })} />
-                    </div>
-                </Modal>
-            )}
+            {draft && <CategoryDialog draft={draft} setDraft={setDraft} onSave={save} onClose={() => setDraft(null)} />}
         </div>
+    );
+}
+
+function CategoryDialog({
+    draft,
+    setDraft,
+    onSave,
+    onClose,
+}: {
+    draft: Draft;
+    setDraft: (d: Draft) => void;
+    onSave: () => Promise<void>;
+    onClose: () => void;
+}) {
+    const [busy, setBusy] = useState(false);
+    const nameProblem = requiredError(draft.name, "The name");
+    const ready = nameProblem === null;
+    const { formId, tried, formProps } = useFormFlow({
+        ready,
+        onSubmit: async () => {
+            setBusy(true);
+            await onSave();
+            setBusy(false);
+        },
+    });
+
+    return (
+        <Modal
+            open
+            onClose={onClose}
+            title={draft.id ? "Edit category" : "New category"}
+            footer={
+                <>
+                    <FormHint ready={ready} action="save" escape="closes" className="mr-auto hidden sm:block" />
+                    <button className="btn btn-ghost" onClick={onClose}>
+                        Cancel
+                    </button>
+                    <SubmitButton formId={formId} ready={ready} busy={busy}>
+                        Save
+                    </SubmitButton>
+                </>
+            }
+        >
+            <form className="space-y-5" {...formProps}>
+                <TextField
+                    id="cat-name"
+                    label="Name"
+                    maxLength={40}
+                    value={draft.name}
+                    onChange={(name) => setDraft({ ...draft, name })}
+                    error={nameProblem}
+                    showErrors={tried}
+                />
+                <IconPicker label="Icon" icons={CATEGORY_ICON_KEYS} value={draft.icon} color={draft.color} onChange={(icon) => setDraft({ ...draft, icon })} />
+                <ColorPicker value={draft.color} onChange={(color) => setDraft({ ...draft, color })} />
+            </form>
+        </Modal>
     );
 }

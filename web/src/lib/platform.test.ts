@@ -33,5 +33,7 @@ describe("modifierLabels", () => {
         expect(modifierLabels("macos")).toMatchObject({ ctrl: "⌃", alt: "⌥" });
         expect(modifierLabels("windows")).toMatchObject({ ctrl: "Ctrl", alt: "Alt" });
         expect(modifierLabels("freebsd")).toMatchObject({ ctrl: "Ctrl", alt: "Alt" });
+        expect(modifierLabels("macos").enter).toBe("Return");
+        expect(modifierLabels("linux").enter).toBe("Enter");
     });
 });

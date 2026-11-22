@@ -5,6 +5,7 @@ import { nameError } from "../lib/validation";
 import { Modal } from "./modal";
 import { ProfileFields, type ProfileValues } from "./profile-fields";
 import { useToast } from "./toast";
+import { FormHint, SubmitButton, useFormFlow } from "./form-kit";
 import type { PublicUser } from "../../../shared/types";
 
 // Lets whoever is signed in change their own name, avatar and colour.
@@ -18,22 +19,24 @@ export function ProfileDialog({ open, onClose }: { open: boolean; onClose: () =>
         if (open && user) setValues({ name: user.name, avatar: user.avatar, color: user.color });
     }, [open, user]);
 
-    const valid = nameError(values.name) === null;
+    const ready = nameError(values.name) === null;
 
-    const save = async () => {
-        if (!valid) return;
-        setBusy(true);
-        try {
-            const res = await api.patch<{ user: PublicUser }>("/me", { ...values, name: values.name.trim() });
-            setUser(res.user);
-            notify("Profile updated", { tone: "success" });
-            onClose();
-        } catch (e) {
-            notify((e as Error).message, { tone: "error" });
-        } finally {
-            setBusy(false);
-        }
-    };
+    const { formId, tried, formProps } = useFormFlow({
+        ready,
+        onSubmit: async () => {
+            setBusy(true);
+            try {
+                const res = await api.patch<{ user: PublicUser }>("/me", { ...values, name: values.name.trim() });
+                setUser(res.user);
+                notify("Profile updated", { tone: "success" });
+                onClose();
+            } catch (e) {
+                notify((e as Error).message, { tone: "error" });
+            } finally {
+                setBusy(false);
+            }
+        },
+    });
 
     return (
         <Modal
@@ -42,25 +45,18 @@ export function ProfileDialog({ open, onClose }: { open: boolean; onClose: () =>
             title="My profile"
             footer={
                 <>
+                    <FormHint ready={ready} action="save" escape="closes" className="mr-auto hidden sm:block" />
                     <button className="btn btn-ghost" onClick={onClose}>
                         Cancel
                     </button>
-                    <button className="btn btn-primary" onClick={save} disabled={!valid || busy}>
+                    <SubmitButton formId={formId} ready={ready} busy={busy}>
                         Save
-                    </button>
+                    </SubmitButton>
                 </>
             }
         >
-            <form
-                className="space-y-5"
-                noValidate
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    void save();
-                }}
-            >
-                <ProfileFields idPrefix="me" values={values} onChange={setValues} />
-                <button type="submit" className="hidden" />
+            <form className="space-y-5" {...formProps}>
+                <ProfileFields idPrefix="me" values={values} onChange={setValues} showErrors={tried} />
             </form>
         </Modal>
     );
