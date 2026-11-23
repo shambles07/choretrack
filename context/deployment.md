@@ -78,15 +78,15 @@ during the build.
 **Id:** 5f285db6-861d-489b-89a4-6b72cf912523
 **Type:** decision
 **Status:** active
-**Evidence:** inferred
-**Source:** commit 1603078 (`Makefile`); no stated reason found
+**Evidence:** confirmed
+**Source:** commit 1603078 (`Makefile`); maintainer confirmation, development conversation, 2026-11-23
 
 `make update` and `make docker-update` check out the newest release tag (a
 plain `vMAJOR.MINOR.PATCH`; the old `v1.0.0-rc.1` tag is ignored);
 `CHANNEL=main` follows `main` instead.
 
-**Reason (inferred):** a home server should run versions that have been
-released and tested, not whatever was last merged.
+**Reason:** only released versions should run on the home server, not
+whatever was last merged into `main`.
 
 **Rejected alternative:** always tracking `main`, still available as
 `CHANNEL=main`.
