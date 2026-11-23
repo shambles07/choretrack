@@ -134,6 +134,16 @@ changelog-preview: require-changie ## Preview the next release notes (VERSION=au
 release: require-changie ## Batch changes into VERSION=auto|major|minor|patch|vX.Y.Z and commit
 	@test -z "$$(git status --porcelain)" || { echo "Commit or stash your changes first."; exit 1; }
 	@ls .changes/unreleased/*.yaml >/dev/null 2>&1 || { echo "No unreleased changes. Add some with: make change"; exit 1; }
+	@# Plain SemVer only: no -rc or other pre-release suffix, and never a step backwards.
+	@case "$(VERSION)" in \
+		auto|major|minor|patch) ;; \
+		*) echo "$(VERSION)" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$$' \
+			|| { echo "VERSION must be auto, major, minor, patch or a plain vMAJOR.MINOR.PATCH (got '$(VERSION)')."; exit 1; }; \
+		   last="$$($(CHANGIE) latest)"; \
+		   if [ "$$(printf '%s\n%s\n' "$$last" "$(VERSION)" | sort -V | tail -n1)" != "$(VERSION)" ] || [ "$$last" = "$(VERSION)" ]; then \
+				echo "$(VERSION) isn't higher than the last release ($$last)."; exit 1; \
+		   fi ;; \
+	esac
 	$(CHANGIE) batch $(VERSION)
 	$(CHANGIE) merge
 	npm install --package-lock-only --ignore-scripts --no-audit --no-fund >/dev/null
@@ -174,7 +184,7 @@ pull:
 		$(call say,"Updating to the latest main"); \
 		git switch --quiet main && git pull --ff-only --quiet; \
 	else \
-		latest="$$(git tag --list 'v*' --sort=-v:refname | head -n1)"; \
+		latest="$$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' | head -n1)"; \
 		if [ -z "$$latest" ]; then \
 			$(call say,"No releases tagged yet; following main"); \
 			git switch --quiet main && git pull --ff-only --quiet; \

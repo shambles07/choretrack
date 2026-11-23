@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 export type ThemePref = "system" | "light" | "dark";
 
@@ -18,26 +18,47 @@ function apply(pref: ThemePref): void {
     document.documentElement.classList.toggle("dark", dark);
 }
 
-export function useTheme(): [ThemePref, (p: ThemePref) => void] {
-    const [pref, setPref] = useState<ThemePref>(readPref);
+// One shared theme setting, so every theme button and the "t" shortcut stay in step.
+let current: ThemePref = readPref();
+const listeners = new Set<() => void>();
 
+export function setThemePref(pref: ThemePref): void {
+    current = pref;
+    apply(pref);
+    try {
+        localStorage.setItem(KEY, pref);
+    } catch {
+        // Storage may be unavailable (private browsing); the theme still applies for this visit.
+    }
+    listeners.forEach((l) => l());
+}
+
+// Flips between light and dark from whatever is showing now (including "system").
+export function toggleLightDark(): ThemePref {
+    const next = document.documentElement.classList.contains("dark") ? "light" : "dark";
+    setThemePref(next);
+    return next;
+}
+
+function subscribe(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+}
+
+export function useTheme(): [ThemePref, (p: ThemePref) => void] {
+    const pref = useSyncExternalStore(subscribe, () => current);
+
+    // Follow the device while set to "system".
     useEffect(() => {
         apply(pref);
-        try {
-            localStorage.setItem(KEY, pref);
-        } catch {
-            // Storage may be unavailable (private browsing); the theme still applies for this visit.
-        }
-        if (pref !== "system") {
-            return;
-        }
+        if (pref !== "system") return;
         const media = window.matchMedia("(prefers-color-scheme: dark)");
         const onChange = () => apply("system");
         media.addEventListener("change", onChange);
         return () => media.removeEventListener("change", onChange);
     }, [pref]);
 
-    return [pref, setPref];
+    return [pref, setThemePref];
 }
 
 // Remembers a small per-device preference such as card vs table view.

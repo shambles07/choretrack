@@ -2,7 +2,7 @@
 
 [← Back to README](../README.md)
 
-Versions follow [Semantic Versioning](https://semver.org) and are tracked with [changie](https://changie.dev). Each change gets a small YAML file in [`.changes/unreleased`](../.changes/unreleased). A release collects those files into the notes for one version, then rebuilds [CHANGELOG.md](../CHANGELOG.md).
+Versions follow [Semantic Versioning](https://semver.org): every release is a plain `vMAJOR.MINOR.PATCH` that bumps exactly one of the three numbers. There are no pre-releases or release candidates. Versions are tracked with [changie](https://changie.dev). Each change gets a small YAML file in [`.changes/unreleased`](../.changes/unreleased). A release collects those files into the notes for one version, then rebuilds [CHANGELOG.md](../CHANGELOG.md).
 
 > [!IMPORTANT]
 > Don't edit `CHANGELOG.md` by hand; changie regenerates it. Edit the files in `.changes/` and run `npx changie merge`.
@@ -28,9 +28,11 @@ Pick a kind and write one line, written for the people who use ChoreTrack.
 ## 2. Cut the release
 
 ```bash
-make changelog-preview          # optional: see the notes first
-make release                    # VERSION=auto by default, or major|minor|patch|v1.4.0
+make changelog-preview          # optional: see the notes and the version first
+make release                    # VERSION=auto by default
 ```
+
+`VERSION=auto` picks the bump from the kinds in the table above: the biggest one wins, so a single 💥 Breaking or 🧹 Removed entry makes it a major release. You can name the bump yourself (`VERSION=major`, `minor` or `patch`), or give an exact `VERSION=vX.Y.Z`. `make release` only accepts a plain `vX.Y.Z` that is higher than the last release.
 
 This batches the unreleased changes into `.changes/vX.Y.Z.md`, rebuilds `CHANGELOG.md`, sets the version in `package.json`, and commits. Open a pull request with that commit.
 
@@ -44,16 +46,6 @@ make tag
 ```
 
 Pushing the tag runs [the release workflow](../.github/workflows/release.yml). It tests the code and publishes a GitHub release using that version's notes. `make tag` confirms the tag reached GitHub. If a tag exists on your machine but was never pushed, running it again pushes it.
-
-## Release candidates (optional)
-
-To try a version before calling it final, tag a release candidate after step 2 is merged:
-
-```bash
-git tag -a v1.1.0-rc.1 -m "v1.1.0 release candidate 1" && git push origin v1.1.0-rc.1
-```
-
-The workflow publishes it as a **pre-release**, using the notes in `.changes/v1.1.0.md`. Once you're happy with it, run `make tag` to publish the final `v1.1.0`.
 
 > [!NOTE]
 > Home servers following releases pick the new version up with `make update` or `make docker-update`.

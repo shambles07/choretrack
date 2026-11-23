@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
     ClipboardList,
@@ -18,13 +18,15 @@ import {
     VolumeX,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
-import { useTheme, type ThemePref } from "../lib/theme";
+import { toggleLightDark, useTheme, type ThemePref } from "../lib/theme";
 import { api } from "../lib/api";
 import { setSoundEnabled } from "../lib/sound";
 import { IconTile } from "../lib/icons";
 import { applyAccent } from "../lib/accent";
-import { modifierLabels } from "../lib/platform";
-import { useNavShortcuts } from "../lib/use-nav-shortcuts";
+import { useShortcuts } from "../lib/use-shortcuts";
+import { shortcutsFor, type ShortcutAction } from "../lib/shortcuts";
+import { ShortcutsDialog } from "./shortcuts-dialog";
+import { useToast } from "./toast";
 import { ProfileDialog } from "./profile-dialog";
 import type { PublicUser } from "../../../shared/types";
 
@@ -101,9 +103,38 @@ export function AppShell() {
     const navigate = useNavigate();
     const nav = user?.role === "admin" ? ADMIN_NAV : DOER_NAV;
     const paths = useMemo(() => nav.map((n) => n.to), [nav]);
-    const showHints = useNavShortcuts(paths);
     const [editingProfile, setEditingProfile] = useState(false);
-    const keys = useMemo(() => modifierLabels(), []);
+    const [helpOpen, setHelpOpen] = useState(false);
+    const notify = useToast();
+    const shortcuts = useMemo(() => shortcutsFor(user?.role ?? "doer"), [user?.role]);
+
+    // "New …" shortcuts work from any page: go to the right page and ask it to open its form.
+    const run = useCallback(
+        (action: ShortcutAction) => {
+            switch (action) {
+                case "profile":
+                    setEditingProfile(true);
+                    break;
+                case "new-chore":
+                    navigate("/admin/chores?new=1");
+                    break;
+                case "new-reward":
+                    navigate("/admin/rewards?new=1");
+                    break;
+                case "new-category":
+                    navigate("/admin/categories?new=1");
+                    break;
+                case "theme":
+                    notify(toggleLightDark() === "dark" ? "Dark theme" : "Light theme", { duration: 1500 });
+                    break;
+                case "help":
+                    setHelpOpen(true);
+                    break;
+            }
+        },
+        [navigate, notify],
+    );
+    const showHints = useShortcuts(paths, shortcuts, run);
 
     // Everyone's favourite colour becomes the accent colour for buttons and highlights.
     useEffect(() => {
@@ -146,18 +177,12 @@ export function AppShell() {
                             {item.label}
                         </NavLink>
                     ))}
-                    <p className="mt-3 px-3 text-xs text-muted">
-                        Press <kbd className="font-semibold">1</kbd>–<kbd className="font-semibold">{nav.length}</kbd> to
-                        jump. Hold{" "}
-                        <kbd className="font-semibold" title={keys.ctrlName}>
-                            {keys.ctrl}
-                        </kbd>{" "}
-                        or{" "}
-                        <kbd className="font-semibold" title={keys.altName}>
-                            {keys.alt}
-                        </kbd>{" "}
-                        to see the numbers.
-                    </p>
+                    <button
+                        className="mt-3 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-left text-xs text-muted hover:bg-surface-2 hover:text-fg"
+                        onClick={() => setHelpOpen(true)}
+                    >
+                        Press <kbd className="kbd-inline">?</kbd> for keyboard shortcuts
+                    </button>
                 </nav>
                 <div className="flex items-center gap-1 rounded-2xl bg-surface-2 p-1.5">
                     <button
@@ -252,6 +277,7 @@ export function AppShell() {
             </nav>
 
             {editingProfile && <ProfileDialog open onClose={() => setEditingProfile(false)} />}
+            <ShortcutsDialog open={helpOpen} onClose={() => setHelpOpen(false)} role={user.role} nav={nav} />
         </div>
     );
 }

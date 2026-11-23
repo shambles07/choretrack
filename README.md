@@ -13,6 +13,7 @@
 [![Node.js](https://img.shields.io/badge/node-22%2B-3c873a?style=flat-square&logo=nodedotjs&logoColor=white)](docs/installation.md)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ed?style=flat-square&logo=docker&logoColor=white)](docs/installation.md#-docker)
 [![License](https://img.shields.io/badge/license-Unlicense-ec4899?style=flat-square)](LICENSE)
+[![Keep the Why](https://keepthewhy.com/assets/badge.svg)](https://keepthewhy.com)
 
 [Features](#-features) • [Quick start](#-quick-start) • [Commands](#%EF%B8%8F-commands) • [Docs](#-docs) • [Changelog](CHANGELOG.md)
 
@@ -40,7 +41,7 @@ Parents add chores. Kids tick them off, get confetti and a jingle, and earn poin
 | 🎉 **Celebrations** | Confetti and original jingles, made in the browser with no audio files |
 | 🎨 **Your colours** | Light and dark modes; each person's favourite colour is their accent |
 | 📱 **Any screen** | Phone, tablet and desktop, in card or table view; installable as an app |
-| ⌨️ **Keyboard first** | Number keys switch pages; every form wraps <kbd>Tab</kbd>, checks itself as you type and submits on <kbd>Return</kbd> |
+| ⌨️ **Keyboard first** | Press <kbd>?</kbd> for every shortcut: number keys switch pages, single letters create things, and every form submits on <kbd>Return</kbd> |
 
 ## 🚀 Quick start
 
